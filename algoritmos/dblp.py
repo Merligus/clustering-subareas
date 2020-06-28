@@ -153,7 +153,13 @@ if opcao_grafo != 2:
             G.vs[vid]["initial"] = -1
             G.vs[vid]["fixed"] = False
 
-    VC4 = G.community_label_propagation(weights=G.es["commonauthors"], initial=G.vs["initial"], fixed=G.vs["fixed"])
+    edge_list = G.get_edgelist()
+    constant = 1./min(G.es["commonauthors"])
+    print(constant)
+    for eid in range(len(edge_list)):
+        G.es[eid]["commonauthors"] *= constant
+
+    VC4 = G.community_label_propagation(weights=G.es["commonauthors"])#, initial=G.vs["initial"], fixed=G.vs["fixed"])
     for comm_ind, comm in enumerate(VC4):
         file_out.write("{0}\n".format(comm_ind))
         for v in comm:

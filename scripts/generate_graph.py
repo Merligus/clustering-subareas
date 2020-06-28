@@ -2,6 +2,7 @@ from igraph import *
 import numpy as np
 import xml.etree.ElementTree as ET
 import pickle
+import html
 
 def binarySearch(alist, item):
     first = 0
@@ -40,6 +41,15 @@ if opcao_grafo == 2:
     with open('G:\\Mestrado\\BD\\data\\set_of_authors' + test_name + '.pickle', 'rb') as handle:
         set_of_authors = pickle.load(handle)
 
+    # file_authors = open('G:\\Mestrado\\BD\\data\\authors.txt', "w", encoding="utf-8")
+    # for author in set_of_authors:
+    #     try:
+    #         file_authors.write(html.escape(author) + "\n")
+    #     except:
+    #         print(author)
+
+    # file_authors.close()
+    # exit()
     new_journals = dict(journals)
     new_journals_publications = dict(journals_publications)
     for key in journals:
