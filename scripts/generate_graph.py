@@ -3,6 +3,7 @@ import numpy as np
 import xml.etree.ElementTree as ET
 import pickle
 import html
+import time
 
 def binarySearch(alist, item):
     first = 0
@@ -22,26 +23,31 @@ def binarySearch(alist, item):
 # 0: nao direcionado
 # 1: bidirecionado
 # 2: bipartido
-opcao_grafo = 2
+opcao_grafo = 0
+
+mode = 'mean'
 
 # Gerador no arquivo teste?
 test = False
 test_name = ""
+year = 0
 if test:
     test_name = "test"
+if year > 0:
+    test_name += '_' + str(year)
 
-with open('G:\\Mestrado\\BD\\data\\journals_dict' + test_name + '.pickle', 'rb') as handle:
+with open('../data/journals_dict' + test_name + '.pickle', 'rb') as handle:
     journals = pickle.load(handle)
 
 
 if opcao_grafo == 2:
-    with open('G:\\Mestrado\\BD\\data\\journals_publications_dict' + test_name + '.pickle', 'rb') as handle:
+    with open('../data/journals_publications_dict' + mode + '.pickle', 'rb') as handle:
         journals_publications = pickle.load(handle)
 
-    with open('G:\\Mestrado\\BD\\data\\set_of_authors' + test_name + '.pickle', 'rb') as handle:
+    with open('../data/set_of_authors' + mode + '.pickle', 'rb') as handle:
         set_of_authors = pickle.load(handle)
 
-    # file_authors = open('G:\\Mestrado\\BD\\data\\authors.txt', "w", encoding="utf-8")
+    # file_authors = open('../data/authors.txt', "w", encoding="utf-8")
     # for author in set_of_authors:
     #     try:
     #         file_authors.write(html.escape(author) + "\n")
@@ -84,18 +90,30 @@ else:
 
     journals = new_journals
 
+    ########### PARA IMPRIMIR OS AUTORES E JORNAIS EM ARQUIVOS TXT
+    # file_authors = open('../data/authors.txt', "w", encoding="utf-8")
+    # file_journals = open('../data/journals.txt', "w", encoding="utf-8")
+    # for j in journals.keys():
+    #     try:
+    #         file_journals.write(html.escape(j) + "\n")
+    #     for a in journals[j].keys():
+    #         try:
+    #             file_authors.write(html.escape(a) + "\n")
+
+    # file_authors.close()
+    # file_journals.close()
+
     list_of_authors = []
     index = 0
     journal_ind = {}
     for journal in journals:
         list_of_authors.append(journals[journal])
-        list_of_authors[-1].sort()
+        # list_of_authors[-1].sort()
         journal_ind[journal] = index
         index += 1
 
 if opcao_grafo == 0:
     V = len(journals)
-    G = Graph.Full(V)
 elif opcao_grafo == 1:
     V = len(journals)
     G = Graph.Full(V, directed=True)
@@ -104,6 +122,8 @@ else:
     A_len = len(set_of_authors)
     G.add_vertices(A_len)
     V = J_len + A_len
+
+adj_mat = np.zeros((V, V))
 
 if opcao_grafo == 2:
     G.add_edges(edges)
@@ -133,16 +153,18 @@ else:
                 l1, l2 = l2, l1
                 l1_len, l2_len = l2_len, l1_len
             for authors1 in l1:
-                found, authors2_ind = binarySearch(l2, authors1)
-                if found:
+                if l2.get(authors1):
                     common += 1
-            
             if opcao_grafo == 0:
-                eid = G.get_eid(v1, v2)
-                if(common == 0):
-                    G.delete_edges(eid)
-                else:
-                    G.es[eid]["commonauthors"] = common/(list_of_authors[v1].__len__() + list_of_authors[v2].__len__() - common)
+                if common != 0:
+                    if mode == 'union':
+                        adj_mat[v1, v2] = common/(list_of_authors[v1].__len__() + list_of_authors[v2].__len__() - common)
+                    elif mode == 'min':
+                        adj_mat[v1, v2] = common/min(list_of_authors[v1].__len__(), list_of_authors[v2].__len__())
+                    elif mode == 'mean':
+                        denom = (list_of_authors[v1].__len__() + list_of_authors[v2].__len__()) / 2
+                        adj_mat[v1, v2] = common/denom
+                    adj_mat[v2, v1] = adj_mat[v1, v2]
             else:
                 if(common == 0):
                     eid1 = G.get_eid(v1, v2)
@@ -156,22 +178,58 @@ else:
                     G.es[eid2]["commonauthors"] = common/(list_of_authors[v2].__len__())
 
             v2 += 1
+        print('{} of {} done'.format(v1, V))
         v1 += 1
 
-    vid = 0
+    nauthors = []
+    journalname = []
     for journal in journal_ind:
         ind = journal_ind[journal]
         length = list_of_authors[ind].__len__()
-        G.vs[vid]["nauthors"] = length
-        G.vs[vid]["journalname"] = journal
-        vid += 1
+        nauthors.append(length)
+        journalname.append(journal)
+
+del journals
+del new_journals
+del journal_ind
+del list_of_authors
+
+print('Apaguei')
+
+# p = open(filename + '.txt', 'w')
+# p.write('V = {}\n'.format(G.vs.indegree().__len__()))
+# p.write('vs nauthors\n')
+# for vid, nauthors in enumerate(G.vs['nauthors']):
+#     p.write('\t{} {}\n'.format(vid, nauthors))
+# p.write('vs journalname\n')
+# string_type = 'aaa'
+# for vid, journalname in enumerate(G.vs['journalname']):
+#     try:
+#         if type(journal) == type(string_type):
+#             string_type = html.escape(journal)
+#             p.write('\t{} {}\n'.format(vid, string_type))
+#     except:
+#         string_type = 'aa'
+# p.write('edgelist\n')
+# for e in G.get_edgelist():
+#     p.write('\t{}-{}\n'.format(e[0], e[1]))
+# p.write('es commonauthors\n')
+# for eid, commonauthors in enumerate(G.es['commonauthors']):
+#     p.write('\t{} {}\n'.format(eid, commonauthors))
+# p.close()
 
 # 0: nao direcionado
 # 1: bidirecionado
 # 2: bipartido
+
 if opcao_grafo == 0:
-    G.save("G:\\Mestrado\\BD\\data\\graph_nao_direcionado" + test_name + ".gml")
+    with open('../data/graph_nao_direcionado' + mode + '.npy', 'wb') as f:
+        np.save(f, adj_mat)
+    with open('../data/nauthors' + '.pickle', 'wb') as handle:
+        pickle.dump(nauthors, handle, protocol=2)
+    with open('../data/journalname' + '.pickle', 'wb') as handle:
+        pickle.dump(journalname, handle, protocol=2)
 elif opcao_grafo == 1: 
-    G.save("G:\\Mestrado\\BD\\data\\graph_direcionado" + test_name + ".gml")
+    G.save("../data/graph_direcionado" + mode + ".gml")
 else:
-    G.save("G:\\Mestrado\\BD\\data\\graph_bipartido" + test_name + ".gml")
+    G.save("../data/graph_bipartido" + mode + ".gml")

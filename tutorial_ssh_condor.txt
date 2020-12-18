@@ -1,0 +1,78 @@
+- acesso:
+	ssh gustavo.merli@ssh.recod.ic.unicamp.br
+	senha DEUS
+
+- listando environments 
+	conda env list
+
+- ativando environment
+	conda activate graph
+
+- antes de executar o script do condor e para o bash
+  .py está com a flag de executável habilitada.
+  Usar o comando "ls -l" para ver as flags.
+  r - read
+  w - write
+  x - execute
+
+  Exemplo:
+  -rwxrw-r-- arquivo
+  rwx para o dono
+  rw- para o grupo do dono
+  r-- para os usuários do sistema
+  	
+  	"chmod 755 arquivos.py" para colocar executável para todos, 
+  	ler e escrever para o restante.
+  	-rwxr-xr-x
+
+- colocar no cabeçalho do arquivo.py para não dar erro de exec
+	#!/usr/bin/env python3
+
+- executando algum script em condor. 
+  exemplo de arquivos para submissão
+
+sub_job.sub
+	executable = run_py.sh
+
+	output       = output
+	error        = error
+	log          = log
+
+	request_cpus   = 4
+	request_memory = 8GB
+	request_disk   = 20GB
+
+	should_transfer_files = yes
+	queue
+
+- executando
+	condor_submit exemplo.sub
+
+- caso de algum erro de codificação de arquivo
+	tr -d '\015' <arquivo >arquivo_unix
+
+- verificando as submissões
+	condor_status -submitters
+	ou
+	condor_q
+
+- analisando a submissão
+	condor_q -analyze id
+
+- removendo a submissão
+	condor_rm id
+
+- pra sair do ssh. 
+	exit
+
+- copiando arquivo 
+	scp gustavo.merli@ssh.recod.ic.unicamp.br:./path/arquivo ./path/arquivo
+
+- editar arquivo
+	nano nome.arquivo
+
+- ver arquivo
+	cat nome.arquivo
+
+- instalando biblioteca no ambiente do conda
+	conda install -n <env> <lib>

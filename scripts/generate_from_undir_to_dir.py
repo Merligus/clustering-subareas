@@ -9,8 +9,8 @@ test_name = ""
 if test:
     test_name = "test"
 
-G = load("G:\\Mestrado\\BD\\data\\graph_nao_direcionado" + test_name + ".gml")
-
+G = load("G:\\Mestrado\\BD\\data\\graph_nao_direcionado" + test_name + "_2015.gml")
+print(2)
 V = G.vs.indegree().__len__()
 edges = []
 edge_list = G.get_edgelist()
@@ -33,4 +33,4 @@ for e in edge_list:
     ea["commonauthors"].append(common/l2)
 
 G2 = Graph(n=V, edges=edges, vertex_attrs=va, edge_attrs=ea, directed=True)
-G2.save("G:\\Mestrado\\BD\\data\\graph_direcionado" + test_name + "2.gml")
+G2.save("G:\\Mestrado\\BD\\data\\graph_direcionado" + test_name + "_2015.gml")

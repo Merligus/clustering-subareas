@@ -1,0 +1,12 @@
+executable = run_py.sh
+
+output       = outputdblp
+error        = errordblp
+log          = dblp.log
+
+request_cpus   = 4
+request_memory = 8GB
+request_disk   = 20GB
+
+should_transfer_files = yes
+queue
