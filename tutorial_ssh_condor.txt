@@ -46,7 +46,12 @@ sub_job.sub
 	queue
 
 - executando
-	condor_submit exemplo.sub
+	sem variavel
+		condor_submit exemplo.sub
+	com variaveis
+		condor_submit var1=1 var2=mode exemplo.sub
+
+		e dentro de exemplo.sub usar Arguments = $(var1) $(var2)
 
 - caso de algum erro de codificação de arquivo
 	tr -d '\015' <arquivo >arquivo_unix

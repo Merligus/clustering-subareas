@@ -3,6 +3,51 @@ from igraph import *
 import numpy as np
 import xml.etree.ElementTree as ET
 import pickle
+import sys
+
+def cluster_rec(graph, function, threshold, times=3):
+    V = len(graph.vs.indegree())
+    graph['names'] = [v for v in range(V)]
+    graphs = [graph]
+    VC = []
+    for _ in range(times):
+        new_graphs = []
+        for g in graphs:
+            # Vertex Cluster
+            if function == 'fastgreedy':
+                vd = g.community_fastgreedy(weights=g.es['commonauthors'])
+                vc = vd.as_clustering()
+            elif function == 'infomap':
+                vc = g.community_infomap(edge_weights=g.es['commonauthors'])
+            elif function == 'leading_eigenvector':
+                vc = g.community_leading_eigenvector(weights=g.es['commonauthors'])
+            elif function == 'multilevel':
+                vc = g.community_multilevel(weights=g.es['commonauthors'])
+            elif function == 'walktrap':
+                vd = g.community_walktrap(weights=g.es['commonauthors'])
+                vc = vd.as_clustering()
+            elif function == 'optimal_modularity':
+                vd = g.community_optimal_modularity(weights=g.es['commonauthors'])
+            else:
+                print('FUNCTION NOT RECOGNIZED')
+            # For each community
+            for comm in vc:
+                # Too big, execute it again
+                if len(comm) > threshold:
+                    # Create the subgraph of the community
+                    sub_g = g.subgraph(comm, implementation='create_from_scratch')
+                    # Saving their real names
+                    sub_g['names'] = [g['names'][v] for v in comm]
+                    # Insert the subgraph in the queue of execution
+                    new_graphs.append(sub_g)
+                else:
+                    # No need to execute it again, just save their real names
+                    VC.append([g['names'][v] for v in comm])
+        del graphs
+        graphs = new_graphs
+    for g in graphs:
+        VC.append(g['names'])
+    return VC
 
 def info(f, VC, d_ind_pra_nome, representantes, iniciais):
     for comm_ind, comm in enumerate(VC):
@@ -22,7 +67,7 @@ def info(f, VC, d_ind_pra_nome, representantes, iniciais):
             for name in iniciais[i]:
                 if name in lista_de_jornais:
                     print(f'{name} da comunidade {i} foi para a comunidade {comm_ind}')
-    print("VC", G.modularity(VC, weights=G.es["commonauthors"]))
+    # print("VC", G.modularity(VC, weights=G.es["commonauthors"]))
 
 def modularity(C, G):
     weights = G.es["commonauthors"]
@@ -56,6 +101,17 @@ def modularity(C, G):
 
 print('STARTING')
 
+if(len(sys.argv) < 4):
+    print("Falta parametros")
+    exit()
+elif(len(sys.argv) > 4):
+    print("Muitos parametros")
+    exit()
+else:
+    log_transf = bool(int(sys.argv[1]))
+    mode = sys.argv[2] # mean, min, union
+    function = sys.argv[3] # mean, min, union
+
 # 0: nao direcionado
 # 1: bidirecionado
 # 2: bipartido
@@ -63,9 +119,7 @@ opcao_grafo = 0
 
 # Supervisionado ou não supervisionado
 supervisionado = False
-log_transf = True
 do_spanning_tree = False
-mode = 'mean' # mean, min, union
 
 # Gerador no arquivo teste?
 test = False
@@ -155,184 +209,112 @@ else:
     exit()
 
 if opcao_grafo != 2:
-    seeds_escolhida = 2
-    if seeds_escolhida == 1:
-        initial = {"ASPLOS": 0,
-                    "DAC": 0,
-                    "FCCM": 0,
-                    "HPCA": 0,
-                    "ICCAD": 0,
-                    "ISCA": 0,
-                    "MICRO": 0,
-                    "COLT": 1,
-                    "FOCS": 1,
-                    "ISSAC": 1,
-                    "LICS": 1,
-                    "SODA": 1,
-                    "STOC": 1,
-                    "BIBE": 2,
-                    "CSB": 2,
-                    "ISMB": 2,
-                    "RECOMB": 2,
-                    "WABI": 2,
-                    "CHES": 3,
-                    "EUROCRYPT": 3,
-                    "FSE": 3,
-                    "ASIACRYPT": 3,
-                    "CRYPTO": 3,
-                    "TCC": 3,
-                    "DEXA": 4,
-                    "EDBT": 4,
-                    "ER": 4,
-                    "ICDT": 4,
-                    "PODS": 4,
-                    "SIGMOD Conference": 4,
-                    "VLDB": 4,
-                    "CIKM": 5,
-                    "ECML": 5,
-                    "ICDE": 5,
-                    "ICDM": 5,
-                    "ICML": 5,
-                    "KDD": 5,
-                    "PAKDD": 5,
-                    "Euro-Par": 6,
-                    "ICDCS": 6,
-                    "ICPP": 6,
-                    "IPDPS": 6,
-                    "PACT": 6,
-                    "PODC": 6,
-                    "PPoPP": 6,
-                    "CGI": 7,
-                    "CVPR": 7,
-                    "ECCV": 7,
-                    "ICCV": 7,
-                    "SI3D": 7,
-                    "SIGGRAPH": 7,
-                    "ICNP": 8,
-                    "INFOCOM": 8,
-                    "LCN": 8,
-                    "Mobihoc": 8,
-                    "SIGCOMM": 8,
-                    "ACL": 9,
-                    "EACL": 9,
-                    "ECIR": 9,
-                    "NAACL": 9,
-                    "SIGIR": 9,
-                    "SPIRE": 9,
-                    "TREC": 9,
-                    "APLAS": 10,
-                    "CP": 10,
-                    "ICFP": 10,
-                    "ICLP": 10,
-                    "OOPSLA": 10,
-                    "PLDI": 10,
-                    "POPL": 10,
-                    "ASE": 11,
-                    "CAV": 11,
-                    "FM": 11,
-                    "FME": 11,
-                    "SIGSOFT FSE": 11,
-                    "ICSE": 11,
-                    "PEPM": 11,
-                    "TACAS": 11,
-                    "CCS": 12,
-                    "CSFW": 12,
-                    "ESORICS": 12,
-                    "NDSS": 12,
-                    "EC-Web": 13,
-                    "ICWE": 13,
-                    "ISWC": 13,
-                    "WISE": 13,
-                    "WWW": 13}
-    else:
-        initial = {"Artif. Intell.": 0,
-            "J. Artif. Intell. Res. (JAIR)": 0,
-            "J. Autom. Reasoning": 0,
-            "AAAI": 0,
-            "IJCAI": 0,
-            "BMC Bioinform.": 1,
-            "Bioinformatics [ISMB/ECCB]": 1,
-            "Bioinformatics [ISMB]": 1,
-            "Bioinformatics": 1,
-            "PLoS Computational Biology": 1,
-            "RECOMB": 1,
-            "IEEE/ACM Trans. Comput. Biology Bioinform.": 1,
-            "IEEE/ACM Trans. Netw.": 2,
-            "IEEE Trans. Communications": 2,
-            "MOBICOM": 2,
-            "SIGCOMM": 2,
-            "INFOCOM": 2,
-            "OOPS Messenger": 3,
-            "POPL": 3,
-            "SIGPLAN Notices": 3,
-            "ACM Trans. Program. Lang. Syst.": 3,
-            "CGO": 3,
-            "Int. J. Comput. Their Appl.": 4,
-            "IEEE Micro": 4,
-            "DAC": 4,
-            "ASPLOS": 4,
-            "IEEE Trans. on CAD of Integrated Circuits and Systems": 4,
-            "The Journal of Supercomputing": 4,
-            "ACM Trans. Graph.": 5,
-            "IEEE Computer Graphics and Applications": 5,
-            "IEEE Trans. Vis. Comput. Graph.": 5,
-            "IEEE Visualization": 5,
-            "SIGGRAPH": 5,
-            "ACM Trans. Database Syst.": 6,
-            "VLDB J.": 6,
-            "PODS": 6,
-            "SIGMOD Conference": 6,
-            "J. Database Manag.": 6,
-            "IEEE Trans. Parallel Distrib. Syst.": 7,
-            "J. Parallel Distributed Comput.": 7,
-            "PODC": 7,
-            "ICDCS": 7,
-            "ACM Trans. Comput. Hum. Interact.": 8,
-            "Int. J. Man Mach. Stud.": 8,
-            "User Model. User-Adapt. Interact.": 8,
-            "CHI": 8,
-            "CSCW": 8,
-            "Int. J. Comput. Vis.": 9,
-            "IEEE Trans. Image Process.": 9,
-            "CVPR": 9,
-            "ICIP": 9,
-            "Mach. Learn.": 10,
-            "J. Mach. Learn. Res.": 10,
-            "Neural Computation": 10,
-            "NIPS": 10,
-            "ICML": 10,
-            "Inf. Syst. Res.": 11,
-            "Management Science": 11,
-            "J. Manag. Inf. Syst.": 11,
-            "Eur. J. Inf. Syst.": 11,
-            "MIS Q.": 11,
-            "Multimedia Syst.": 12,
-            "IEEE Trans. Multimedia": 12,
-            "IEEE Multim.": 12,
-            "ACM Multimedia": 12,
-            "ICME": 12,
-            "Math. Program.": 13,
-            "SIAM Journal on Optimization": 13,
-            "Oper. Res.": 13,
-            "INFORMS J. Comput.": 13,
-            "Comput. Oper. Res.": 13,
-            "Discret. Appl. Math.": 13,
-            "ACM Trans. Inf. Syst. Secur.": 14,
-            "J. Comput. Secur.": 14,
-            "IEEE Secur. Priv.": 14,
-            "IEEE Symposium on Security and Privacy": 14,
-            "USENIX Security Symposium": 14,
-            "ACM Conference on Computer and Communications Security": 14,
-            "IEEE Trans. Software Eng.": 15,
-            "ACM Trans. Softw. Eng. Methodol.": 15,
-            "ICSE": 15,
-            "Empirical Software Engineering": 15,
-            "TACAS": 15,
-            "J. ACM": 16,
-            "SIAM J. Comput.": 16,
-            "STOC": 16,
-            "FOCS": 16,
-            "SODA": 16}
+    initial = { 'ai' : 0,
+                'jair' : 0,
+                'jar' : 0,
+                'aaai' : 0,
+                'ijcai' : 0,
+
+                'bmcbi' : 1,
+                'bioinformatics' : 1,
+                'jcb' : 1,
+                'recomb' : 1,
+                'tcbb' : 1,
+
+
+                'ton' : 2,
+                'tcom' : 2,
+                'mobicom' : 2,
+                'sigcomm' : 2,
+                'infocom' : 2,
+
+
+                'oopsla' : 3,
+                'popl' : 3,
+                'pldi' : 3,
+                'toplas' : 3,
+                'cgo' : 3,
+
+                'isca' : 4,
+                'micro' : 4,
+                'dac' : 4,
+                'asplos' : 4,
+                'tcad' : 4,
+                'tjs' : 4,
+
+                'tog' : 5,
+                'cga' : 5,
+                'tvcg' : 5,
+                'siggraph' : 5,
+                'vis' : 5,
+
+                'tods' : 6,
+                'vldb' : 6,
+                'pods' : 6,
+                'sigmod' : 6,
+                'jdm' : 6,
+
+                'tpds' : 7,
+                'jpdc' : 7,
+                'podc' : 7,
+                'icdcs' : 7,
+
+                'tochi' : 8,
+                'ijmms' : 8,
+                'umuai' : 8,
+                'chi' : 8,
+                'cscw' : 8,
+
+                'ijcv' : 9,
+                'tip' : 9,
+                'cvpr' : 9,
+                'icip' : 9,
+
+                'ml' : 10,
+                'jmlr' : 10,
+                'neco' : 10,
+                'nips' : 10,
+                'icml' : 10,
+
+                'isr' : 11,
+                'mansci' : 11,
+                'jmis' : 11,
+                'ejis' : 11,
+                'misq' : 11,
+
+                'mms' : 12,
+                'tmm' : 12,
+                'ieeemm' : 12,
+                'mm' : 12,
+                'icmcs' : 12,
+
+                'mp' : 13,
+                'siamjo' : 13,
+                'or' : 13,
+                'informs' : 13,
+                'cor' : 13,
+                'dam' : 13,
+
+
+                'tissec' : 14,
+                'jcs' : 14,
+                'ieeesp' : 14,
+                'sp' : 14,
+                'uss' : 14,
+                'ccs' : 14,
+
+                'tse' : 15,
+                'tosem' : 15,
+                'icse' : 15,
+                'ese' : 15,
+                'tacas' : 15,
+
+                'jacm' : 16,
+                'siamcomp' : 16,
+                'stoc' : 16,
+                'focs' : 16,
+                'soda' : 16}
+
 
     # lista de listas
     lista_iniciais = []
@@ -445,69 +427,75 @@ if opcao_grafo != 2:
     
     # Não-supervisionado
     else:
-        VD1 = G.community_fastgreedy(G.es["commonauthors"])
-        VC1 = VD1.as_clustering()
-        file_out = open(f"../data/Fastgreedy{test_name}.txt", "w")
-        info(file_out, VC1, d, lideres, lista_iniciais)
+        VC = cluster_rec(graph=G, function=function, threshold=50)
+        file_out = open(f"../data/{function}{test_name}.txt", "w")
+        info(file_out, VC, d, lideres, lista_iniciais)
+        del VC
         f.close()
 
         print(50*'-')
-        print('Fim Fastgreedy')
+        print(f'Fim {function}')
         print(50*'-')
 
-        VC2 = G.community_infomap(edge_weights=G.es["commonauthors"])
-        file_out = open(f"../data/Infomap{test_name}.txt", "w")
-        info(file_out, VC2, d, lideres, lista_iniciais)
-        f.close()
+        # fastgreedy infomap leading_eigenvector multilevel walktrap optimal_modularity
 
-        print(50*'-')
-        print('Fim Infomap')
-        print(50*'-')
-
-        VC3 = G.community_leading_eigenvector(weights=G.es["commonauthors"])
-        file_out = open(f"../data/Leading_eigenvector{test_name}.txt", "w")
-        info(file_out, VC3, d, lideres, lista_iniciais)
-        f.close()
-
-        print(50*'-')
-        print('Fim Leading_eigenvector')
-        print(50*'-')
-
-        VC5 = G.community_multilevel(weights=G.es["commonauthors"])
-        file_out = open(f"../data/Multilevel{test_name}.txt", 'w')
-        info(file_out, VC5, d, lideres, lista_iniciais)
-        f.close()
-
-        print(50*'-')
-        print('Fim Multilevel')
-        print(50*'-')
-
-        # # demora muito
-        # VD7 = G.community_edge_betweenness(directed=False, weights=G.es["commonauthors"])
-        # VC7 = VD7.as_clustering()
-        # file_out = open(f"../data/Edge_betweenness{test_name}.txt", 'w')
-        # info(file_out, VC7, d, lideres, lista_iniciais)
+        # VC2 = cluster_rec(graph=G, function='infomap', threshold=50)
+        # file_out = open(f"../data/Infomap{test_name}.txt", "w")
+        # info(file_out, VC2, d, lideres, lista_iniciais)
+        # del VC2
         # f.close()
 
-        # # nao funciona com grafo nao conexo
-        # VC8 = G.community_spinglass(weights=G.es["commonauthors"])
-        # print("VC8", modularity(VC8, G))
+        # print(50*'-')
+        # print('Fim Infomap')
+        # print(50*'-')
 
-        VD9 = G.community_walktrap(weights=G.es["commonauthors"])
-        VC9 = VD9.as_clustering()
-        file_out = open(f"../data/Walktrap{test_name}.txt", 'w')
-        info(file_out, VC9, d, lideres, lista_iniciais)
-        f.close()
+        # VC3 = cluster_rec(graph=G, function='leading_eigenvector', threshold=50)
+        # file_out = open(f"../data/Leading_eigenvector{test_name}.txt", "w")
+        # info(file_out, VC3, d, lideres, lista_iniciais)
+        # del VC3
+        # f.close()
 
-        print(50*'-')
-        print('Fim Walktrap')
-        print(50*'-')
+        # print(50*'-')
+        # print('Fim Leading_eigenvector')
+        # print(50*'-')
 
-        VC6 = G.community_optimal_modularity(G.es["commonauthors"])
-        file_out = open(f"../data/Optimal_modularity{test_name}.txt", 'w')
-        info(file_out, VC6, d, lideres, lista_iniciais)
-        f.close()
+        # VC5 = cluster_rec(graph=G, function='multilevel', threshold=50)
+        # file_out = open(f"../data/Multilevel{test_name}.txt", 'w')
+        # info(file_out, VC5, d, lideres, lista_iniciais)
+        # del VC5
+        # f.close()
 
-        print(50*'-')
-        print('Fim Optimal_modularity')
-        print(50*'-')
+        # print(50*'-')
+        # print('Fim Multilevel')
+        # print(50*'-')
+
+        # # # demora muito
+        # # VD7 = G.community_edge_betweenness(directed=False, weights=G.es["commonauthors"])
+        # # VC7 = VD7.as_clustering()
+        # # file_out = open(f"../data/Edge_betweenness{test_name}.txt", 'w')
+        # # info(file_out, VC7, d, lideres, lista_iniciais)
+        # # f.close()
+
+        # # # nao funciona com grafo nao conexo
+        # # VC8 = G.community_spinglass(weights=G.es["commonauthors"])
+        # # print("VC8", modularity(VC8, G))
+
+        # VC9 = cluster_rec(graph=G, function='walktrap', threshold=50)
+        # file_out = open(f"../data/Walktrap{test_name}.txt", 'w')
+        # info(file_out, VC9, d, lideres, lista_iniciais)
+        # del VC9
+        # f.close()
+
+        # print(50*'-')
+        # print('Fim Walktrap')
+        # print(50*'-')
+
+        # VC6 = cluster_rec(graph=G, function='optimal_modularity', threshold=50)
+        # file_out = open(f"../data/Optimal_modularity{test_name}.txt", 'w')
+        # info(file_out, VC6, d, lideres, lista_iniciais)
+        # del VC6
+        # f.close()
+
+        # print(50*'-')
+        # print('Fim Optimal_modularity')
+        # print(50*'-')
