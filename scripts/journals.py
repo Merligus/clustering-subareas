@@ -65,7 +65,7 @@ else:
     for event, child in root:
         if event == 'start':
             # <article mdate="2020-03-12" key="tr/meltdown/m18" publtype="informal">
-            if child.tag in {"article", "inproceedings"}:
+            if child.tag in {"article", "inproceedings", "proceedings"}:
                 authors = []
                 if 'publtype' not in child.attrib:
                     save = 0x04 # can save
@@ -74,15 +74,17 @@ else:
                     publtype[child.attrib['publtype']] = True
                 else:
                     save = 0x00 # cannot save
+            elif child.tag == "title":
+                journal_name = child.text # add journal name
             elif child.tag == "author":
                 authors.append(child.text) # add author
-            # elif child.tag in {"journal", "booktitle"}:
-            #     journal = child.text # add journal name
+            elif child.tag in {"journal", "booktitle"}:
+                journal_name_rough = child.text # add journal name
             elif child.tag == "year" and child.text:
                 if int(child.text) >= year:
                     save = save | 0x01 # can save
             # <url>db/conf/cmcs/cmcs2001.html#Hughes01</url>
-            elif child.tag == "url" and child.text is not None and not (save & 0x02): # not (save & 0x02) serve pra verificar se cross ja achou journal
+            elif child.tag == "url" and child.text is not None and not (save & 0x02): # save == bxxx1x = cross ja achou journal
                 url = child.text
                 find_c = child.text.find('conf')
                 shift_c = len('conf')
@@ -124,8 +126,13 @@ else:
                 journals[journal] = {}
                 for author in authors:
                     journals[journal][author] = True
+            journals[journal]['journal_name_rough'] = journal_name_rough
+        elif event == 'end' and child.tag == 'proceedings' and save == 0x07:
+            save = 0x00
+            if journal not in journals:
+                journals[journal] = {}
+            journals[journal]['journal_name'] = journal_name
 
     print(f'publtypes = {publtype.keys()}')
     with open('../data/journals_dict' + test_name + '.pickle', 'wb') as handle:
         pickle.dump(journals, handle, protocol=2)
-

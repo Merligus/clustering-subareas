@@ -1,4 +1,4 @@
-names = ['fastgreedy', 'infomap', 'leading_eigenvector', 'multilevel', 'walktrap']
+names = ['fastgreedy', 'infomap', 'leading_eigenvector', 'multilevel', 'walktrap', 'label_propagation', 'community_leiden']
 logs = ['0', '1']
 posts = ['mean', 'min', 'union']
 
