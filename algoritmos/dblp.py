@@ -83,7 +83,7 @@ def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_grou
             if G.vs[v]["fixed"]:
                 initials.append(v)
                 if only_ground_truth:
-                    initial_labels_pred.append(G.vs[vid]["initial"])
+                    initial_labels_pred.append(G.vs[v]["initial"])
                 else:
                     initial_labels_pred.append(comm_ind)
             labels[v] = comm_ind
@@ -119,13 +119,10 @@ def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_grou
         labels_silhouette = initial_labels_pred
     else: # Sem ground truth
         labels_silhouette = labels
-    print(len(labels_silhouette))
-    print(labels_silhouette)
-    print(f'Silhouette: {metrics.silhouette_score(distance, labels_silhouette, metric=metric):.2f}')
-    # try:
-    #     print(f'Silhouette: {metrics.silhouette_score(distance, labels_silhouette, metric=metric):.2f}')
-    # except:
-    #     print(f'Silhouette: -1')
+    try:
+        print(f'Silhouette: {metrics.silhouette_score(distance, labels_silhouette, metric=metric):.2f}')
+    except:
+        print(f'Silhouette: -1')
     return labels
 
 def modularity(C, G):
