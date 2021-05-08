@@ -67,10 +67,10 @@ def cluster_rec(graph, function, threshold, times=3):
         VC.append(g['names'])
     return VC
 
-# only_ground_truth=True, silhouette_ground_truth=True para descobrir o valor maximo que silhouette chega com a matriz "distance"
-# only_ground_truth=False, silhouette_ground_truth=True para comparar com o valor maximo do silhouette quando only_ground_truth=True
-# silhouette_ground_truth=False. Executa o silhouette na matriz inteira
-def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_ground_truth=True, silhouette_ground_truth=True, metric='precomputed'):
+# only_ground_truth=True, only_labeled=True para descobrir o valor maximo que silhouette chega com a matriz "distance"
+# only_ground_truth=False, only_labeled=True para comparar com o valor maximo do silhouette quando only_ground_truth=True
+# only_labeled=False. Executa o silhouette na matriz inteira
+def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_ground_truth=True, only_labeled=True, metric='precomputed'):
     labels_true = []
     labels_pred = []
     labels = [0]*G.vs.indegree().__len__()
@@ -110,19 +110,15 @@ def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_grou
     print(f'Completeness: {metrics.completeness_score(labels_true, labels_pred):.2%}')
     print(f'V-measure: {metrics.v_measure_score(labels_true, labels_pred):.2%}')
     print(f'Fowlkes-Mallows: {metrics.fowlkes_mallows_score(labels_true, labels_pred):.2%}')
-    if silhouette_ground_truth: # Com ground truth
+    if only_labeled: # Com ground truth
         # Apenas pegando as distancias dos jornais do ground truth
         if metric == 'precomputed':
-            distance = distance[initials,:][:,initials]
+            dist_ = distance[initials,:][:,initials]
         else:
-            distance = distance[initials,:][:,:]
-        labels_silhouette = initial_labels_pred
+            dist_ = distance[initials,:][:,:]
+        print(f'Silhouette: {metrics.silhouette_score(dist_, initial_labels_pred, metric=metric):.2f}')
     else: # Sem ground truth
-        labels_silhouette = labels
-    try:
-        print(f'Silhouette: {metrics.silhouette_score(distance, labels_silhouette, metric=metric):.2f}')
-    except:
-        print(f'Silhouette: -1')
+        print(f'Silhouette: {metrics.silhouette_score(distance, labels, metric=metric):.2f}')
     return labels
 
 def modularity(C, G):
@@ -448,15 +444,15 @@ if do_mds:
     np.fill_diagonal(distance, 0)
     
     # eps for DBSCAN
-    eps = {0: {32: 0.2382, 64: 0.2778, 128: 0.3033},
-           1: {32: 0.2382, 64: 0.2778, 128: 0.3033},
-           2: {32: 0.2382, 64: 0.2778, 128: 0.3033},
-           3: {32: 0.2382, 64: 0.2778, 128: 0.3033}}
+    eps = {0: {2: 0.2382, 3: 0.2778, 4: 0.3033, 5: 0.3033, 6: 0.3033, 7: 0.3033},
+           1: {2: 0.2382, 3: 0.2778, 4: 0.3033, 5: 0.3033, 6: 0.3033, 7: 0.3033},
+           2: {2: 0.2382, 3: 0.2778, 4: 0.3033, 5: 0.3033, 6: 0.3033, 7: 0.3033},
+           3: {2: 0.2382, 3: 0.2778, 4: 0.3033, 5: 0.3033, 6: 0.3033, 7: 0.3033}}
     vbgmm_d = {}
     weights_mode = {0: 'normal', 1: '1or0', 2: 'd-1', 3: 'd-2'}
     for w_o in [0, 1, 2, 3]:
         vbgmm_d[w_o] = {}
-        for n_comps in [32, 64, 128]:
+        for n_comps in [2, 3, 4, 5, 6, 7]:
             embedders = [MDS(n_components=n_comps, dissimilarity='precomputed', metric=True, random_state=RANDOM_STATE, weight_option=w_o)] # TSNE(n_components=n_comps, metric='precomputed', random_state=RANDOM_STATE)]
             for embedding in embedders:
                 # Embedding
@@ -469,51 +465,51 @@ if do_mds:
                 # print(f'Stress = {embedding.stress_} com {n_comps} componentes')
 
                 # DBSCAN
-                dbscan_c = DBSCAN(eps=eps[w_o][n_comps])
-                dbscan_c.fit(X_transformed)
-                print(f'MDS DBSCAN eps={eps[w_o][n_comps]} n_components = {n_comps}')
-                VC = show_communities_length(dbscan_c.labels_)
+                # dbscan_c = DBSCAN(eps=eps[w_o][n_comps])
+                # dbscan_c.fit(X_transformed)
+                # print(f'MDS DBSCAN eps={eps[w_o][n_comps]} n_components = {n_comps}')
+                # VC = show_communities_length(dbscan_c.labels_)
 
-                file_out = open(f"../data/trash.txt", "w")
-                info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean')
-                file_out.close()
+                # file_out = open(f"../data/trash.txt", "w")
+                # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=True, only_labeled=True)
+                # file_out.close()
 
-    #             for n_clus in [20, 40]:
-    #                 # Clustering
-    #                 # K-means
-    #                 k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
-    #                 k_means.fit(X_transformed)
-    #                 print(f'MDS KMeans n_clusters={n_clus} n_components = {n_comps}')
-    #                 VC = show_communities_length(k_means.labels_)
+                for n_clus in [20, 40]:
+                    # Clustering
+                    # K-means
+                    k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
+                    k_means.fit(X_transformed)
+                    print(f'MDS KMeans n_clusters={n_clus} n_components = {n_comps}')
+                    VC = show_communities_length(k_means.labels_)
 
-    #                 file_out = open(f"../data/trash.txt", "w")
-    #                 info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean')
-    #                 file_out.close()
+                    file_out = open(f"../data/trash.txt", "w")
+                    info(file_out, VC, d, lideres, lista_iniciais, G, distance, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    file_out.close()
 
-    #                 # GMM
-    #                 gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
-    #                 gmm_c.fit(X_transformed)
-    #                 print(f'MDS GMM n_clusters={n_clus} n_components = {n_comps} {"converged" if gmm_c.converged_ else "did not converge"}')
-    #                 VC = show_communities_length(gmm_c.predict(X_transformed))
+                    # GMM
+                    gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
+                    gmm_c.fit(X_transformed)
+                    print(f'MDS GMM n_clusters={n_clus} n_components = {n_comps} {"converged" if gmm_c.converged_ else "did not converge"}')
+                    VC = show_communities_length(gmm_c.predict(X_transformed))
 
-    #                 file_out = open(f"../data/trash.txt", "w")
-    #                 info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean')
-    #                 file_out.close()
+                    file_out = open(f"../data/trash.txt", "w")
+                    info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    file_out.close()
 
-    #                 # VBGMM
-    #                 vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
-    #                 vbgmm_c.fit(X_transformed)
-    #                 print(f'MDS VBGMM n_clusters={n_clus} n_components = {n_comps} {"converged" if vbgmm_c.converged_ else "did not converge"}')
-    #                 vbgmm_labels = vbgmm_c.predict(X_transformed)
-    #                 VC = show_communities_length(vbgmm_labels)
+                    # VBGMM
+                    vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
+                    vbgmm_c.fit(X_transformed)
+                    print(f'MDS VBGMM n_clusters={n_clus} n_components = {n_comps} {"converged" if vbgmm_c.converged_ else "did not converge"}')
+                    vbgmm_labels = vbgmm_c.predict(X_transformed)
+                    VC = show_communities_length(vbgmm_labels)
 
-    #                 # file_out = open(f"../data/VBGMM_{n_clus}clusters_{n_comps}dim_{weights_mode[w_o]}weights.txt", "w")
-    #                 file_out = open(f"../data/trash.txt", "w")
-    #                 info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean')
-    #                 file_out.close()
+                    # file_out = open(f"../data/VBGMM_{n_clus}clusters_{n_comps}dim_{weights_mode[w_o]}weights.txt", "w")
+                    file_out = open(f"../data/trash.txt", "w")
+                    info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    file_out.close()
 
-    #                 # add the classified labels in order to compare
-    #                 vbgmm_d[w_o][n_comps] = vbgmm_labels
+                    # add the classified labels in order to compare
+                    vbgmm_d[w_o][n_comps] = vbgmm_labels
 
     # # comparing the results
     # for w_o1 in vbgmm_d:
