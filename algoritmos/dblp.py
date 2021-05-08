@@ -444,10 +444,10 @@ if do_mds:
     np.fill_diagonal(distance, 0)
     
     # eps for DBSCAN
-    eps = {0: {2: 0.2382, 3: 0.2778, 4: 0.3033, 5: 0.3033, 6: 0.3033, 7: 0.3033},
-           1: {2: 0.2382, 3: 0.2778, 4: 0.3033, 5: 0.3033, 6: 0.3033, 7: 0.3033},
-           2: {2: 0.2382, 3: 0.2778, 4: 0.3033, 5: 0.3033, 6: 0.3033, 7: 0.3033},
-           3: {2: 0.2382, 3: 0.2778, 4: 0.3033, 5: 0.3033, 6: 0.3033, 7: 0.3033}}
+    eps = {0: {2: 0.00518, 3: 0.0148, 4: 0.0295, 5: 0.0535, 6: 0.0756, 7: 0.0946, 32: 0.2382, 64: 0.2778, 128: 0.3033},
+           1: {2: 0.0048, 3: 0.0141, 4: 0.0291, 5: 0.0524, 6: 0.0736, 7: 0.0933, 32: 0.2382, 64: 0.2778, 128: 0.3033},
+           2: {2: 0.00485, 3: 0.0139, 4: 0.028, 5: 0.0475, 6: 0.0676, 7: 0.0877, 32: 0.2382, 64: 0.2778, 128: 0.3033},
+           3: {2: 0.00404, 3: 0.0134, 4: 0.0301, 5: 0.0454, 6: 0.0685, 7: 0.089, 32: 0.2382, 64: 0.2778, 128: 0.3033}}
     vbgmm_d = {}
     weights_mode = {0: 'normal', 1: '1or0', 2: 'd-1', 3: 'd-2'}
     for w_o in [0, 1, 2, 3]:
@@ -465,51 +465,51 @@ if do_mds:
                 # print(f'Stress = {embedding.stress_} com {n_comps} componentes')
 
                 # DBSCAN
-                # dbscan_c = DBSCAN(eps=eps[w_o][n_comps])
-                # dbscan_c.fit(X_transformed)
-                # print(f'MDS DBSCAN eps={eps[w_o][n_comps]} n_components = {n_comps}')
-                # VC = show_communities_length(dbscan_c.labels_)
+                dbscan_c = DBSCAN(eps=eps[w_o][n_comps])
+                dbscan_c.fit(X_transformed)
+                print(f'MDS DBSCAN eps={eps[w_o][n_comps]} n_components = {n_comps}')
+                VC = show_communities_length(dbscan_c.labels_)
 
-                # file_out = open(f"../data/trash.txt", "w")
-                # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=True, only_labeled=True)
-                # file_out.close()
+                file_out = open(f"../data/trash.txt", "w")
+                info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                file_out.close()
 
-                for n_clus in [20, 40]:
+                # for n_clus in [20, 40]:
                     # Clustering
                     # K-means
-                    k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
-                    k_means.fit(X_transformed)
-                    print(f'MDS KMeans n_clusters={n_clus} n_components = {n_comps}')
-                    VC = show_communities_length(k_means.labels_)
+                    # k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
+                    # k_means.fit(X_transformed)
+                    # print(f'MDS KMeans n_clusters={n_clus} n_components = {n_comps}')
+                    # VC = show_communities_length(k_means.labels_)
 
-                    file_out = open(f"../data/trash.txt", "w")
-                    info(file_out, VC, d, lideres, lista_iniciais, G, distance, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                    file_out.close()
+                    # file_out = open(f"../data/trash.txt", "w")
+                    # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    # file_out.close()
 
-                    # GMM
-                    gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
-                    gmm_c.fit(X_transformed)
-                    print(f'MDS GMM n_clusters={n_clus} n_components = {n_comps} {"converged" if gmm_c.converged_ else "did not converge"}')
-                    VC = show_communities_length(gmm_c.predict(X_transformed))
+                    # # GMM
+                    # gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
+                    # gmm_c.fit(X_transformed)
+                    # print(f'MDS GMM n_clusters={n_clus} n_components = {n_comps} {"converged" if gmm_c.converged_ else "did not converge"}')
+                    # VC = show_communities_length(gmm_c.predict(X_transformed))
 
-                    file_out = open(f"../data/trash.txt", "w")
-                    info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                    file_out.close()
+                    # file_out = open(f"../data/trash.txt", "w")
+                    # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    # file_out.close()
 
-                    # VBGMM
-                    vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
-                    vbgmm_c.fit(X_transformed)
-                    print(f'MDS VBGMM n_clusters={n_clus} n_components = {n_comps} {"converged" if vbgmm_c.converged_ else "did not converge"}')
-                    vbgmm_labels = vbgmm_c.predict(X_transformed)
-                    VC = show_communities_length(vbgmm_labels)
+                    # # VBGMM
+                    # vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
+                    # vbgmm_c.fit(X_transformed)
+                    # print(f'MDS VBGMM n_clusters={n_clus} n_components = {n_comps} {"converged" if vbgmm_c.converged_ else "did not converge"}')
+                    # vbgmm_labels = vbgmm_c.predict(X_transformed)
+                    # VC = show_communities_length(vbgmm_labels)
 
-                    # file_out = open(f"../data/VBGMM_{n_clus}clusters_{n_comps}dim_{weights_mode[w_o]}weights.txt", "w")
-                    file_out = open(f"../data/trash.txt", "w")
-                    info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                    file_out.close()
+                    # # file_out = open(f"../data/VBGMM_{n_clus}clusters_{n_comps}dim_{weights_mode[w_o]}weights.txt", "w")
+                    # file_out = open(f"../data/trash.txt", "w")
+                    # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    # file_out.close()
 
-                    # add the classified labels in order to compare
-                    vbgmm_d[w_o][n_comps] = vbgmm_labels
+                    # # add the classified labels in order to compare
+                    # vbgmm_d[w_o][n_comps] = vbgmm_labels
 
     # # comparing the results
     # for w_o1 in vbgmm_d:
