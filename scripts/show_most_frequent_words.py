@@ -21,11 +21,17 @@ def show_top(sentences, frequent, bad_words):
     for word, freq in top:
         print(f'\t\t{word} {freq}')
 
-bad_words = {'korea', 'jose', 'china', 'int', 'india', 'second', 'spain', 'poland', 'third', 'singapore', '4th', '5th', '6th', '7th', '8th', '9th', '10th', 'romania', 'california', 'san', 'information', 'first', 'va', '3rd', '2nd', 'finland', 'brazilian', 'de', '2010.', 'annual', 'ca', 'systems', 'france', 'uk', 'brazil', 'usa', 'japan', 'germany', 'selected', 'revised', 'symposium', 'papers', 'acm', 'comput', 'computational', 'ieee', 'j.', 'computing', 'international', 'proceeding', 'proceedings', 'of', 'to', 'for', 'comp.', 'computer', 'conference', 'workshop', 'on', 'and', 'or', 'the', 'that', 'this', 'with', 'good', 'bad', 'show', 'in', 'january', 'february', 'march', 'may', 'april', 'june', 'july', 'august', 'october', 'september', 'november', 'december'}
+bad_words = {'cambridge', 'cambridge', 'ca', 'california', 'jose', 'int', 'second', 'third', '4th', '5th', '6th', 
+             '7th', '8th', '9th', '10th', 'san', 'information', 'first', 'va', '3rd', '2nd', 'de', '2010.', 'annual', 'systems', 'selected', 'revised', 'symposium', 'papers', 'acm',
+             'comput', 'computational', 'ieee', 'j.', 'computing', 'international', 'proceeding',
+             'proceedings', 'of', 'to', 'for', 'comp.', 'computer', 'conference', 'workshop',
+             'on', 'and', 'or', 'the', 'that', 'this', 'with', 'good', 'bad', 'show', 'in',
+             'january', 'february', 'march', 'may', 'april', 'june', 'july', 'august', 'october',
+             'september', 'november', 'december', 'journal'}
 # top 10
 n = 10
 dir = "G:\\Mestrado\\BD\\data\\formatted_output\\"
-file_name = 'multilevel_union_rec3_.txt'
+file_name = 'multilevel_union_rec3.txt'
 
 frequent = defaultdict(int)
 sentences = []

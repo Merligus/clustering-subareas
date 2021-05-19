@@ -1,0 +1,6 @@
+- journals.py
+- generate_graph.py
+- dblp.py
+- list_journals.py
+- transf -> local
+- show_most_frequent_words.py

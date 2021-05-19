@@ -1,9 +1,6 @@
 import numpy as np
 import xml.etree.ElementTree as ET
 import pickle
-import requests
-import nltk
-from collections import defaultdict
 
 arq_o = '../data/dblp2.xml'
 
@@ -68,7 +65,7 @@ else:
     for event, child in root:
         if event == 'start':
             # <article mdate="2020-03-12" key="tr/meltdown/m18" publtype="informal">
-            if child.tag in {"article", "inproceedings", "proceedings"}:
+            if child.tag in {"article", "inproceedings"}:
                 authors = []
                 if 'publtype' not in child.attrib:
                     save = 0x04 # can save
@@ -77,17 +74,15 @@ else:
                     publtype[child.attrib['publtype']] = True
                 else:
                     save = 0x00 # cannot save
-            elif child.tag == "title":
-                journal_name = child.text # add journal name
             elif child.tag == "author":
                 authors.append(child.text) # add author
-            elif child.tag in {"journal", "booktitle"}:
-                journal_name_rough = child.text # add journal name
+            # elif child.tag in {"journal", "booktitle"}:
+            #     journal = child.text # add journal name
             elif child.tag == "year" and child.text:
                 if int(child.text) >= year:
                     save = save | 0x01 # can save
             # <url>db/conf/cmcs/cmcs2001.html#Hughes01</url>
-            elif child.tag == "url" and child.text is not None and not (save & 0x02): # save == bxxx1x = cross ja achou journal
+            elif child.tag == "url" and child.text is not None and not (save & 0x02): # not (save & 0x02) serve pra verificar se cross ja achou journal
                 url = child.text
                 find_c = child.text.find('conf')
                 shift_c = len('conf')
@@ -126,54 +121,11 @@ else:
                 for author in authors:
                     journals[journal][author] = True
             else:
-                journals[journal] = defaultdict(list)
+                journals[journal] = {}
                 for author in authors:
                     journals[journal][author] = True
-        elif event == 'end' and child.tag == 'proceedings' and save == 0x07:
-            save = 0x00
-            if journal not in journals:
-                journals[journal] = defaultdict(list)
-            if type(journal_name) == str:
-                journals[journal]['journal_name'].append(journal_name)
-
-    for journal in journals:
-        # Nome completo com metadados
-        ocurrences = defaultdict(int)
-        for journal_name in journals[journal]['journal_name']:
-            tokens = nltk.word_tokenize(journal_name) 
-            for t in tokens:
-                ocurrences[t] += 1
-        relevant_tokens = []
-        for t in ocurrences:
-            if ocurrences[t] > len(journals[journal]['journal_name'])//2:
-                relevant_tokens.append(t)
-        # pega o nome que aparece mais tokens
-        name = ''
-        max_c = 0
-        for journal_name in journals[journal]['journal_name']:
-            count = 0
-            for token in relevant_tokens:
-                if token in journal_name:
-                    count += 1
-            if count > max_c:
-                name = journal_name
-                max_c = count
-        # monta o nome
-        name_tokenized = nltk.word_tokenize(name)
-        name = ''
-        relevant_tokens = set(relevant_tokens)
-        for token in name_tokenized:
-            if token in relevant_tokens:
-                name += token + ' ' 
-        
-        journals[journal]['journal_name'] = name
 
     print(f'publtypes = {publtype.keys()}')
-
-    with open('../data/journal_names.txt') as fr:
-        for line in fr:
-            final_ind = line.find(':')
-            journals[line[:final_ind]]['journal_name_rough'] = line[final_ind+1:-1]
-
     with open('../data/journals_dict' + test_name + '.pickle', 'wb') as handle:
         pickle.dump(journals, handle, protocol=2)
+

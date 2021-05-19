@@ -22,11 +22,11 @@ from sklearn.cluster import OPTICS
 def cluster_rec(graph, function, threshold, times=3):
     V = len(graph.vs.indegree())
     graph['names'] = [v for v in range(V)]
-    graphs = [graph]
+    graphs = [('', graph)]
     VC = []
     for _ in range(times):
         new_graphs = []
-        for g in graphs:
+        for ind, g in graphs:
             # Vertex Cluster
             if function == 'fastgreedy':
                 vd = g.community_fastgreedy(weights=g.es['commonauthors'])
@@ -49,7 +49,7 @@ def cluster_rec(graph, function, threshold, times=3):
             else:
                 print('FUNCTION NOT RECOGNIZED')
             # For each community
-            for comm in vc:
+            for e, comm in enumerate(vc):
                 # Too big, execute it again
                 if len(comm) > threshold:
                     # Create the subgraph of the community
@@ -57,27 +57,38 @@ def cluster_rec(graph, function, threshold, times=3):
                     # Saving their real names
                     sub_g['names'] = [g['names'][v] for v in comm]
                     # Insert the subgraph in the queue of execution
-                    new_graphs.append(sub_g)
+                    new_graphs.append((ind + str(e + 1) + '.', sub_g))
                 else:
                     # No need to execute it again, just save their real names
-                    VC.append([g['names'][v] for v in comm])
+                    VC.append((ind + str(e + 1) + '.', [g['names'][v] for v in comm]))
         del graphs
         graphs = new_graphs
-    for g in graphs:
-        VC.append(g['names'])
+    for ind, g in graphs:
+        VC.append((ind, g['names']))
     return VC
 
 # only_ground_truth=True, only_labeled=True para descobrir o valor maximo que silhouette chega com a matriz "distance"
 # only_ground_truth=False, only_labeled=True para comparar com o valor maximo do silhouette quando only_ground_truth=True
 # only_labeled=False. Executa o silhouette na matriz inteira
 def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_ground_truth=True, only_labeled=True, metric='precomputed'):
+    def ind_value(e):
+        s = 0
+        list_of_ind = e[0][:-1].split('.')
+        while len(list_of_ind) < 5:
+            list_of_ind.append('0')
+        list_of_ind.reverse()
+        for i, xi in enumerate(list_of_ind):
+            s += float(xi)*1e4**(i)
+        return s
+    VC.sort(key=ind_value)
     labels_true = []
     labels_pred = []
     labels = [0]*G.vs.indegree().__len__()
     initials = []
     initial_labels_pred = []
-    for comm_ind, comm in enumerate(VC):
-        f.write("{0}\n".format(comm_ind))
+    for comm_ind, tuple in enumerate(VC):
+        ind, comm = tuple[0], tuple[1]
+        f.write("{0}={1}\n".format(comm_ind, ind))
         lista_de_jornais = []
         for v in comm:
             if G.vs[v]["fixed"]:
@@ -571,7 +582,7 @@ if do_mds:
 elif opcao_grafo != 2:   
     VC = cluster_rec(graph=G, function=function, threshold=50, times=TIMES)
     file_out = open(f"../data/{function}{test_name}.txt", "w")
-    labels = info(file_out, VC, d, lideres, lista_iniciais, G)
+    labels = info(file_out, VC, d, lideres, lista_iniciais, G, adj_mat)
     print(f'labels: \n{labels}')
     del VC
     file_out.close()
