@@ -36,7 +36,7 @@ file_name = 'multilevel_union_rec3.txt'
 frequent = defaultdict(int)
 sentences = []
 
-with open(dir + file_name, "r") as f:
+with open(dir + file_name, "r", encoding="utf-8") as f:
     for line in f:
         if line[0].isnumeric():
             if len(sentences) > 0:

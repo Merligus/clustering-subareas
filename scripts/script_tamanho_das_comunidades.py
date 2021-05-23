@@ -1,12 +1,12 @@
 names = ['multilevel']
 posts = ['_union']
 logs = ['']
-recs = ['1', '2', '3', '4']
+recs = ['3']
 for name in names:
     for post in posts:
         for log in logs:
             for rec in recs:
-                arq_path = f'G:\Mestrado\BD\data\\resultados\{name}{post}{log}_rec{rec}.txt'
+                arq_path = f'G:\\Mestrado\\BD\\data\\formatted_output\\{name}{post}{log}_rec{rec}.txt'
                 with open(arq_path, 'r') as f:
                     lista_index = []
                     tamanho = []
