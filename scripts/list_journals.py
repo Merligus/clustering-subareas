@@ -21,7 +21,7 @@ for rec in [2, 3]:
             journal = line[id+1:-1]
             if len(journals[journal]['journal_name']) > 0 :
                 fout.write('\t' + line[1:-1] + ':' + journals[journal]['journal_name'] + '\n')
-            elif len(journals[journal]['journal_name_rough']) > 0:
+            elif 'journal_name_rough' in journals[journal]:
                 fout.write('\t' + line[1:-1] + ':' + journals[journal]['journal_name_rough'] + '\n')
             else:
                 fout.write('\t' + line[1:-1] + ':' + journal.upper() + '\n')

@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from igraph import *
 import numpy as np
+import random
 import xml.etree.ElementTree as ET
 import pickle
 import sys
@@ -195,7 +196,9 @@ else:
     TIMES = int(sys.argv[4])
     n_components = int(sys.argv[5])
 
-RANDOM_STATE = 7
+RANDOM_STATE = 5
+random.seed(RANDOM_STATE)
+np.random.seed(RANDOM_STATE)
 
 # 0: nao direcionado
 # 1: bidirecionado
@@ -218,6 +221,7 @@ if year > 0:
 if log_transf:
     test_name += '_' + 'log'
 test_name += f'_rec{TIMES}'
+in_name = ''
 
 np.set_printoptions(threshold=np.inf)
 
@@ -225,11 +229,11 @@ np.set_printoptions(threshold=np.inf)
 # 1: bidirecionado
 # 2: bipartido
 if opcao_grafo == 0:
-    filename = "../data/graph_nao_direcionado" + mode + '.npy'
+    filename = "../data/graph_nao_direcionado" + mode + in_name + '.npy'
     with open(filename, "rb") as f:
         adj_mat = np.load(f)
     print('LOADED GRAPH')
-    with open('../data/journalname.pickle', 'rb') as handle:
+    with open('../data/journalname' + in_name + '.pickle', 'rb') as handle:
         journalname = pickle.load(handle)
     print('LOADED JOURNAL NAMES')
     V = adj_mat.shape[0]
@@ -421,7 +425,7 @@ print('INITIAL')
 lideres = {}
 for journal in initial:
     lideres[initial[journal]] = journal
-print(f'Representantes de cada comunidade = {lideres}')
+#print(f'Representantes de cada comunidade = {lideres}')
 print(50*'*')
 
 V = len(G.vs.indegree())
@@ -435,7 +439,7 @@ for vid in range(V):
         G.vs[vid]["initial"] = initial[G.vs[vid]["journalname"]]
         G.vs[vid]["fixed"] = True
         comunidades_antes[initial[G.vs[vid]["journalname"]]] += 1
-        print(f'{G.vs[vid]["journalname"]} com initial={G.vs[vid]["initial"]} fixed={G.vs[vid]["fixed"]} tem min={min_pesos[vid]} e max={max_pesos[vid]}')
+#        print(f'{G.vs[vid]["journalname"]} com initial={G.vs[vid]["initial"]} fixed={G.vs[vid]["fixed"]} tem min={min_pesos[vid]} e max={max_pesos[vid]}')
 
         # adjacency_list = index[adj_mat[vid, :] > 0]
         # print(f'vid:{vid}')
@@ -581,9 +585,9 @@ if do_mds:
 
 elif opcao_grafo != 2:   
     VC = cluster_rec(graph=G, function=function, threshold=50, times=TIMES)
-    file_out = open(f"../data/{function}{test_name}.txt", "w")
+    file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
     labels = info(file_out, VC, d, lideres, lista_iniciais, G, adj_mat)
-    print(f'labels: \n{labels}')
+    #print(f'labels: \n{labels}')
     del VC
     file_out.close()
 

@@ -85,12 +85,11 @@ if opcao_grafo == 2:
 else:
     new_journals = dict(journals)
     for key in journals:
-        if 'journal_name_rough' in journals[key]:
-            count = 2
-        else:
-            count = 1
-        if(journals[key].__len__() == count):
+        new_journals[key].pop('journal_name', None)
+        new_journals[key].pop('journal_name_rough', None)
+        if(new_journals[key].__len__() == 0):
             new_journals.pop(key, None)
+            print(f'{key} removido')
 
     journals = new_journals
 
@@ -111,9 +110,9 @@ else:
     journal_ind = {}
     for index, journal in enumerate(journals):
         list_of_authors.append(journals[journal])
-        list_of_authors[-1].pop('journal_name', None)
-        list_of_authors[-1].pop('journal_name_rough', None)
         journal_ind[journal] = index
+        if 'journal_name' in list_of_authors[-1] or 'journal_name_rough' in list_of_authors[-1]:
+            print(f'{journal} errado')
         
 if opcao_grafo == 0:
     V = len(journals)

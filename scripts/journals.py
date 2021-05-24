@@ -84,7 +84,7 @@ else:
                     save = 0x00 # cannot save
             elif child.tag == "title" and child.text is not None and tag == 'proceedings':
                 journal_name = child.text # add journal name
-            elif child.tag == "author" and child.text is not None:
+            elif child.tag == "author":
                 authors.append(child.text) # add author
             elif child.tag == "year" and child.text:
                 if int(child.text) >= year:
@@ -134,6 +134,8 @@ else:
             elif child.tag in {"proceedings"}:
                 if journal_name[0] != '-':
                     journals[journal]['journal_name'].append(journal_name)
+        if event == 'end':
+            child.clear()
 
     for journal in journals:
         if len(journals[journal]['journal_name']) > 0:
