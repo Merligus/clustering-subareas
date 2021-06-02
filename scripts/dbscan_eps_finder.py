@@ -11,7 +11,7 @@ with open(filename, "rb") as f:
 
 d = {0: 'normal', 1: '1or0', 2: 'd-1', 3: 'd-2'}
 for w_o in [0, 1, 2, 3]:
-    for n_comps in [32, 64, 128]:
+    for n_comps in [2, 3, 4, 5, 6, 7, 32, 64, 128]:
         embedders = MDS(n_components=n_comps, dissimilarity='precomputed', metric=True, random_state=7, weight_option=w_o)
         # Embedding
         X_transformed = embedders.fit_transform(distance) # shape = journals x n_components

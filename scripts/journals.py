@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import pickle
 import nltk
 from collections import defaultdict
+import sys
 
 arq_o = '../data/dblp2.xml'
 
@@ -12,6 +13,15 @@ arq_o = '../data/dblp2.xml'
 opcao_grafo = 0
 
 # Gerador no arquivo teste?
+if (len(sys.argv) < 3):
+    print('Falta parametros')
+    exit()
+elif (len(sys.argv) > 3):
+    print('Muitos parametros')
+    exit()
+else:
+    only_journals = bool(int(sys.argv[1]))
+    cut = int(sys.argv[2])
 test = False
 year = 0
 test_name = ""
@@ -20,7 +30,10 @@ if test:
     arq_o = '../data/dblp_new2.xml'
 if year > 0:
     test_name += '_' + str(year)
-
+if only_journals:
+    test_name += '_only_journals'
+if cut > 0:
+    test_name += '_cut' + str(cut)
 
 # dblp = open(arq_o, 'r', encoding="utf-8")
 # root = ET.parse(dblp).getroot()
@@ -28,6 +41,7 @@ if year > 0:
 root = ET.iterparse(arq_o, events=('start', 'end'))
 
 journals = {}
+quantity_articles = defaultdict(int)
 journals_publications = {}
 set_of_authors = set()
 if opcao_grafo == 2:
@@ -97,12 +111,13 @@ else:
                 find_j = child.text.find('journals')
                 shift_j = 8 # len('journals')
                 if find_c > -1 or find_j > -1:
-                    save = save | 0x02 # can save
-                    if find_c > -1:
+                    if find_c > -1 and not only_journals:
+                        save = save | 0x02 # can save
                         start = find_c + shift_c + 1
                         end = start + url[start:].find('/')
                         journal = url[start : end]
                     else:
+                        save = save | 0x02 # can save
                         start = find_j + shift_j + 1
                         end = start + url[start:].find('/')
                         journal = url[start : end]                    
@@ -114,12 +129,13 @@ else:
                 find_j = child.text.find('journals')
                 shift_j = 8 # len('journals')
                 if find_c > -1 or find_j > -1:
-                    save = save | 0x02 # can save
-                    if find_c > -1:
+                    if find_c > -1 and not only_journals:
+                        save = save | 0x02 # can save
                         start = find_c + shift_c + 1
                         end = start + cross[start:].find('/')
                         journal = cross[start : end]
                     else:
+                        save = save | 0x02 # can save
                         start = find_j + shift_j + 1
                         end = start + cross[start:].find('/')
                         journal = cross[start : end]
@@ -129,6 +145,7 @@ else:
                 journals[journal] = {}
                 journals[journal]['journal_name'] = []
             if child.tag in {"article", "inproceedings"}:
+                quantity_articles[journal] += 1
                 for author in authors:
                     journals[journal][author] = True
             elif child.tag in {"proceedings"}:
@@ -137,7 +154,11 @@ else:
         if event == 'end':
             child.clear()
 
+    remove_list = []
     for journal in journals:
+        if quantity_articles[journal] < cut:
+            remove_list.append(journal)
+            continue
         if len(journals[journal]['journal_name']) > 0:
             # Nome completo com metadados
             ocurrences = defaultdict(int)
@@ -172,12 +193,16 @@ else:
         else:
             journals[journal]['journal_name'] = ''
 
+    for journal in remove_list:
+        journals.pop(journal, None)
+        
     print(f'publtypes = {publtype.keys()}')
 
     with open('../data/journal_names.txt') as fr:
         for line in fr:
             final_ind = line.find(':')
-            journals[line[:final_ind]]['journal_name_rough'] = line[final_ind+1:-1]
+            if line[:final_ind] in journals:
+                journals[line[:final_ind]]['journal_name_rough'] = line[final_ind+1:-1]
 
     with open('../data/journals_dict' + test_name + '.pickle', 'wb') as handle:
         pickle.dump(journals, handle, protocol=2)

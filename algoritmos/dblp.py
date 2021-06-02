@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from igraph import *
+from nltk.featstruct import _default_fs_class
 import numpy as np
 import random
 import xml.etree.ElementTree as ET
@@ -42,10 +43,27 @@ def cluster_rec(graph, function, threshold, times=3):
                 vd = g.community_walktrap(weights=g.es['commonauthors'])
                 vc = vd.as_clustering()
             elif function == 'optimal_modularity':
-                vd = g.community_optimal_modularity(weights=g.es['commonauthors'])
+                vc = g.community_optimal_modularity(weights=g.es['commonauthors'])
+            elif function == 'edge_betweenness':
+                vd = g.community_edge_betweenness(weights=g.es['commonauthors'], directed=False)
+                vc = vd.as_clustering()
+            elif function == 'spinglass':
+                vc = g.community_spinglass(weights=g.es['commonauthors'])
             elif function == 'label_propagation':
+                initial_temp = {}
+                for vid in range(len(g.vs.indegree())):
+                    if g.vs[vid]['fixed']:
+                        if g.vs[vid]['initial'] not in initial_temp:
+                            initial_temp[g.vs[vid]['initial']] = len(initial_temp)
+                        g.vs[vid]['initial'] = initial_temp[g.vs[vid]['initial']]
                 vc = g.community_label_propagation(weights=g.es["commonauthors"], initial=g.vs["initial"], fixed=g.vs["fixed"])
             elif function == 'community_leiden':
+                initial_temp = {}
+                for vid in range(len(g.vs.indegree())):
+                    if g.vs[vid]['fixed']:
+                        if g.vs[vid]['initial'] not in initial_temp:
+                            initial_temp[g.vs[vid]['initial']] = len(initial_temp)
+                        g.vs[vid]['initial'] = initial_temp[g.vs[vid]['initial']]
                 vc = g.community_leiden(weights=g.es["commonauthors"], initial_membership=g.vs["initial"])
             else:
                 print('FUNCTION NOT RECOGNIZED')
@@ -89,10 +107,10 @@ def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_grou
     initial_labels_pred = []
     for comm_ind, tuple in enumerate(VC):
         ind, comm = tuple[0], tuple[1]
-        f.write("{0}={1}\n".format(comm_ind, ind))
+        f.write(f"{comm_ind}={ind}\n")
         lista_de_jornais = []
         for v in comm:
-            if G.vs[v]["fixed"]:
+            if G.vs[v]["initial"] > -1:
                 initials.append(v)
                 if only_ground_truth:
                     initial_labels_pred.append(G.vs[v]["initial"])
@@ -100,7 +118,7 @@ def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_grou
                     initial_labels_pred.append(comm_ind)
             labels[v] = comm_ind
             try:
-                f.write("\t{1}:{0}\n".format(d_ind_pra_nome[v], comm_ind))
+                f.write(f"\t{comm_ind}={ind}:{d_ind_pra_nome[v]}\n")
                 lista_de_jornais.append(d_ind_pra_nome[v])
             except:
                 a = 1
@@ -176,17 +194,17 @@ def show_communities_length(labels):
     clusters = max(labels) + 1
     VC = []
     for c in range(clusters):
-        VC.append([])
+        VC.append((f'{c+1}.', []))
     for v, label in enumerate(labels):
-        VC[label].append(v)
+        VC[label][1].append(v)
     return VC
 
 print('STARTING')
 
-if(len(sys.argv) < 6):
+if(len(sys.argv) < 7):
     print("Falta parametros")
     exit()
-elif(len(sys.argv) > 6):
+elif(len(sys.argv) > 7):
     print("Muitos parametros")
     exit()
 else:
@@ -195,6 +213,7 @@ else:
     function = sys.argv[3] # multilevel, fastgreedy,  . . .
     TIMES = int(sys.argv[4])
     n_components = int(sys.argv[5])
+    in_name = '_' + sys.argv[6]
 
 RANDOM_STATE = 5
 random.seed(RANDOM_STATE)
@@ -220,8 +239,8 @@ if year > 0:
     test_name += '_' + str(year)
 if log_transf:
     test_name += '_' + 'log'
-test_name += f'_rec{TIMES}'
-in_name = ''
+if n_components <= 1:
+    test_name += f'_rec{TIMES}'
 
 np.set_printoptions(threshold=np.inf)
 
@@ -430,24 +449,21 @@ print(50*'*')
 
 V = len(G.vs.indegree())
 d = {}
-counter = max(initial.values()) + 1
-comunidades_antes = counter*[0]
 index = np.arange(V)
 for vid in range(V):
     d[vid] = G.vs[vid]["journalname"]
-    try:
+    if G.vs[vid]["journalname"] in initial:
         G.vs[vid]["initial"] = initial[G.vs[vid]["journalname"]]
         G.vs[vid]["fixed"] = True
-        comunidades_antes[initial[G.vs[vid]["journalname"]]] += 1
-#        print(f'{G.vs[vid]["journalname"]} com initial={G.vs[vid]["initial"]} fixed={G.vs[vid]["fixed"]} tem min={min_pesos[vid]} e max={max_pesos[vid]}')
+        # print(f'{G.vs[vid]["journalname"]} com initial={G.vs[vid]["initial"]} fixed={G.vs[vid]["fixed"]} tem min={min_pesos[vid]} e max={max_pesos[vid]}')
 
         # adjacency_list = index[adj_mat[vid, :] > 0]
         # print(f'vid:{vid}')
         # for v2 in adjacency_list:
         #     print(f'\tvid:{v2} w:{adj_mat[vid, v2]}')
         # print(50*'-')
-    except:
-        G.vs[vid]["initial"] = counter
+    else:
+        G.vs[vid]["initial"] = -1
         G.vs[vid]["fixed"] = False
 print(50*'*')
 
@@ -467,7 +483,7 @@ if do_mds:
     weights_mode = {0: 'normal', 1: '1or0', 2: 'd-1', 3: 'd-2'}
     for w_o in [0, 1, 2, 3]:
         vbgmm_d[w_o] = {}
-        for n_comps in [2, 3, 4, 5, 6, 7]:
+        for n_comps in [2, 3, 4, 5, 6, 7, 32, 64, 128]:
             embedders = [MDS(n_components=n_comps, dissimilarity='precomputed', metric=True, random_state=RANDOM_STATE, weight_option=w_o)] # TSNE(n_components=n_comps, metric='precomputed', random_state=RANDOM_STATE)]
             for embedding in embedders:
                 # Embedding
@@ -480,53 +496,53 @@ if do_mds:
                 # print(f'Stress = {embedding.stress_} com {n_comps} componentes')
 
                 # DBSCAN
-                dbscan_c = DBSCAN(eps=eps[w_o][n_comps])
-                dbscan_c.fit(X_transformed)
-                print(f'MDS DBSCAN eps={eps[w_o][n_comps]} n_components = {n_comps}')
-                VC = show_communities_length(dbscan_c.labels_)
+                # dbscan_c = DBSCAN(eps=eps[w_o][n_comps])
+                # dbscan_c.fit(X_transformed)
+                # print(f'MDS DBSCAN eps={eps[w_o][n_comps]} n_components = {n_comps}')
+                # VC = show_communities_length(dbscan_c.labels_)
 
-                file_out = open(f"../data/trash.txt", "w")
-                info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                file_out.close()
+                # file_out = open(f"../data/original_output/dbscan{test_name}_{n_comps}dim_{weights_mode[w_o]}weights_{in_name}.txt", "w")
+                # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                # file_out.close()
 
-                # for n_clus in [20, 40]:
+                for n_clus in [20, 40]:
                     # Clustering
                     # K-means
-                    # k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
-                    # k_means.fit(X_transformed)
-                    # print(f'MDS KMeans n_clusters={n_clus} n_components = {n_comps}')
-                    # VC = show_communities_length(k_means.labels_)
+                    k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
+                    k_means.fit(X_transformed)
+                    print(f'MDS KMeans n_clusters={n_clus} n_components = {n_comps}')
+                    VC = show_communities_length(k_means.labels_)
 
-                    # file_out = open(f"../data/trash.txt", "w")
-                    # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                    # file_out.close()
+                    file_out = open(f'../data/trash.txt', "w")
+                    info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    file_out.close()
 
-                    # # GMM
-                    # gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
-                    # gmm_c.fit(X_transformed)
-                    # print(f'MDS GMM n_clusters={n_clus} n_components = {n_comps} {"converged" if gmm_c.converged_ else "did not converge"}')
-                    # VC = show_communities_length(gmm_c.predict(X_transformed))
+                    # GMM
+                    gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
+                    gmm_c.fit(X_transformed)
+                    print(f'MDS GMM n_clusters={n_clus} n_components = {n_comps} {"converged" if gmm_c.converged_ else "did not converge"}')
+                    VC = show_communities_length(gmm_c.predict(X_transformed))
 
-                    # file_out = open(f"../data/trash.txt", "w")
-                    # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                    # file_out.close()
+                    file_out = open(f'../data/trash.txt', "w")
+                    info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    file_out.close()
 
-                    # # VBGMM
-                    # vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
-                    # vbgmm_c.fit(X_transformed)
-                    # print(f'MDS VBGMM n_clusters={n_clus} n_components = {n_comps} {"converged" if vbgmm_c.converged_ else "did not converge"}')
-                    # vbgmm_labels = vbgmm_c.predict(X_transformed)
-                    # VC = show_communities_length(vbgmm_labels)
+                    # VBGMM
+                    vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
+                    vbgmm_c.fit(X_transformed)
+                    print(f'MDS VBGMM n_clusters={n_clus} n_components = {n_comps} {"converged" if vbgmm_c.converged_ else "did not converge"}')
+                    vbgmm_labels = vbgmm_c.predict(X_transformed)
+                    VC = show_communities_length(vbgmm_labels)
 
-                    # # file_out = open(f"../data/VBGMM_{n_clus}clusters_{n_comps}dim_{weights_mode[w_o]}weights.txt", "w")
-                    # file_out = open(f"../data/trash.txt", "w")
-                    # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                    # file_out.close()
+                    file_out = open(f'../data/trash.txt', "w")
+                    info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    file_out.close()
 
-                    # # add the classified labels in order to compare
-                    # vbgmm_d[w_o][n_comps] = vbgmm_labels
+                    # add the classified labels in order to compare
+                    vbgmm_d[w_o][n_comps] = vbgmm_labels
+                del X_transformed
 
-    # # comparing the results
+    # comparing the results
     # for w_o1 in vbgmm_d:
     #     for n_comps1 in vbgmm_d[w_o1]:
     #         for w_o2 in vbgmm_d:
@@ -584,7 +600,7 @@ if do_mds:
     # print(clustering_OPTICS.labels_)
 
 elif opcao_grafo != 2:   
-    VC = cluster_rec(graph=G, function=function, threshold=50, times=TIMES)
+    VC = cluster_rec(graph=G, function=function, threshold=0, times=TIMES)
     file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
     labels = info(file_out, VC, d, lideres, lista_iniciais, G, adj_mat)
     #print(f'labels: \n{labels}')

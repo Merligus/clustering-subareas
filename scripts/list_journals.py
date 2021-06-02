@@ -1,10 +1,5 @@
 import pickle
 
-print('ABRINDO ARQUIVO')
-with open('../data/journals_dict.pickle', 'rb') as handle:
-    journals = pickle.load(handle)
-print('ARQUIVO ABERTO')
-
 # quando eh o MDS
 comb = []
 for w_o in ['normal', '1or0', 'd-1', 'd-2']:
@@ -12,23 +7,34 @@ for w_o in ['normal', '1or0', 'd-1', 'd-2']:
         for n_clus in [20, 40]:
             comb.append((w_o, n_comps, n_clus))
 
-for rec in [2, 3]:
-    fin = open(f'../data/multilevel_union_rec{rec}.txt')
-    fout = open(f'../data/formatted_output/multilevel_union_rec{rec}.txt', 'w')
-    for line in fin:
-        if line[0] == '\t':
-            id = line.find(':')
-            journal = line[id+1:-1]
-            if len(journals[journal]['journal_name']) > 0 :
-                fout.write('\t' + line[1:-1] + ':' + journals[journal]['journal_name'] + '\n')
-            elif 'journal_name_rough' in journals[journal]:
-                fout.write('\t' + line[1:-1] + ':' + journals[journal]['journal_name_rough'] + '\n')
-            else:
-                fout.write('\t' + line[1:-1] + ':' + journal.upper() + '\n')
-        else:
-            fout.write(line)
-    fin.close()
-    fout.close()
+for in_name in ['cut100', 'only_journals']:
+    print('ABRINDO ARQUIVO')
+    with open(f'../data/journals_dict_{in_name}.pickle', 'rb') as handle:
+        journals = pickle.load(handle)
+    print('ARQUIVO ABERTO')
+    for function in ['multilevel']:
+        for rec in [3]:
+            fin = open(f'../data/{function}_union_rec{rec}_{in_name}.txt')
+            fout = open(f'../data/formatted_output/{function}_union_rec{rec}_{in_name}.txt', 'w')
+            for line in fin:
+                if line[0] == '\t':
+                    id = line.find(':')
+                    journal = line[id+1:-1]
+                    if journal not in journals:
+                        print(journal, line)
+                        continue
+                    if len(journals[journal]['journal_name']) > 0:
+                        fout.write('\t' + line[1:-1] + ':' + journals[journal]['journal_name'] + '\n')
+                    elif 'journal_name_rough' in journals[journal]:
+                        fout.write('\t' + line[1:-1] + ':' + journals[journal]['journal_name_rough'] + '\n')
+                    # elif 'journal_name' in journals[journal]:
+                    #     fout.write('\t' + line[1:-1] + ':' + journals[journal]['journal_name'] + '\n')
+                    else:
+                        fout.write('\t' + line[1:-1] + ':' + journal.upper() + '\n')
+                else:
+                    fout.write(line)
+            fin.close()
+            fout.close()
 
 # f = open('../data/journal_listed.txt', 'w')
 # print('ESCREVENDO')

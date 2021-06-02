@@ -2,6 +2,7 @@ from igraph import *
 import numpy as np
 import xml.etree.ElementTree as ET
 import pickle
+import sys
 import html
 import time
 
@@ -28,13 +29,26 @@ opcao_grafo = 0
 mode = 'union'
 
 # Gerador no arquivo teste?
+if (len(sys.argv) < 3):
+    print('Falta parametros')
+    exit()
+elif (len(sys.argv) > 3):
+    print('Muitos parametros')
+    exit()
+else:
+    only_journals = bool(int(sys.argv[1]))
+    cut = int(sys.argv[2])
 test = False
 test_name = ""
 year = 0
 if test:
-    test_name = "test"
+    test_name = "_test"
 if year > 0:
     test_name += '_' + str(year)
+if only_journals:
+    test_name += '_only_journals'
+if cut > 0:
+    test_name += '_cut' + str(cut)
 
 with open('../data/journals_dict' + test_name + '.pickle', 'rb') as handle:
     journals = pickle.load(handle)
@@ -225,11 +239,11 @@ print('Apaguei')
 # 2: bipartido
 
 if opcao_grafo == 0:
-    with open('../data/graph_nao_direcionado' + mode + '.npy', 'wb') as f:
+    with open('../data/graph_nao_direcionado' + mode + test_name + '.npy', 'wb') as f:
         np.save(f, adj_mat)
-    with open('../data/nauthors' + '.pickle', 'wb') as handle:
+    with open('../data/nauthors' + test_name + '.pickle', 'wb') as handle:
         pickle.dump(nauthors, handle, protocol=2)
-    with open('../data/journalname' + '.pickle', 'wb') as handle:
+    with open('../data/journalname' + test_name +'.pickle', 'wb') as handle:
         pickle.dump(journalname, handle, protocol=2)
 elif opcao_grafo == 1: 
     G.save("../data/graph_direcionado" + mode + ".gml")
