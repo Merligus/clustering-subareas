@@ -213,7 +213,10 @@ else:
     function = sys.argv[3] # multilevel, fastgreedy,  . . .
     TIMES = int(sys.argv[4])
     n_components = int(sys.argv[5])
-    in_name = '_' + sys.argv[6]
+    if sys.argv[6] != '-':
+        in_name = '_' + sys.argv[6]
+    else:
+        in_name = ''
 
 RANDOM_STATE = 5
 random.seed(RANDOM_STATE)
@@ -432,6 +435,18 @@ initial = { 'ai' : 0,
             'focs' : 16,
             'soda' : 16}
 
+fast_journalname = {}
+for journal in journalname:
+    fast_journalname[journal] = True
+
+remove_list = []
+for journal in initial:
+    if journal not in fast_journalname:
+        remove_list.append(journal)
+
+for journal_r in remove_list:
+    initial.pop(journal_r, None)
+
 # lista de listas
 lista_iniciais = []
 for i in range(max(initial.values())+1):
@@ -498,7 +513,7 @@ if do_mds:
                 # DBSCAN
                 # dbscan_c = DBSCAN(eps=eps[w_o][n_comps])
                 # dbscan_c.fit(X_transformed)
-                # print(f'MDS DBSCAN eps={eps[w_o][n_comps]} n_components = {n_comps}')
+                # print(f'MDS DBSCAN weights={weights_mode[w_o]} eps={eps[w_o][n_comps]} n_components = {n_comps}')
                 # VC = show_communities_length(dbscan_c.labels_)
 
                 # file_out = open(f"../data/original_output/dbscan{test_name}_{n_comps}dim_{weights_mode[w_o]}weights_{in_name}.txt", "w")
@@ -510,7 +525,7 @@ if do_mds:
                     # K-means
                     k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
                     k_means.fit(X_transformed)
-                    print(f'MDS KMeans n_clusters={n_clus} n_components = {n_comps}')
+                    print(f'MDS KMeans weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps}')
                     VC = show_communities_length(k_means.labels_)
 
                     file_out = open(f'../data/trash.txt', "w")
@@ -520,7 +535,7 @@ if do_mds:
                     # GMM
                     gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
                     gmm_c.fit(X_transformed)
-                    print(f'MDS GMM n_clusters={n_clus} n_components = {n_comps} {"converged" if gmm_c.converged_ else "did not converge"}')
+                    print(f'MDS GMM weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps} {"converged" if gmm_c.converged_ else "did not converge"}')
                     VC = show_communities_length(gmm_c.predict(X_transformed))
 
                     file_out = open(f'../data/trash.txt', "w")
@@ -530,7 +545,7 @@ if do_mds:
                     # VBGMM
                     vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
                     vbgmm_c.fit(X_transformed)
-                    print(f'MDS VBGMM n_clusters={n_clus} n_components = {n_comps} {"converged" if vbgmm_c.converged_ else "did not converge"}')
+                    print(f'MDS VBGMM weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps} {"converged" if vbgmm_c.converged_ else "did not converge"}')
                     vbgmm_labels = vbgmm_c.predict(X_transformed)
                     VC = show_communities_length(vbgmm_labels)
 

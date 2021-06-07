@@ -33,31 +33,32 @@ bad_words = {'cambridge', 'cambridge', 'ca', 'california', 'jose', 'int', 'secon
              'january', 'february', 'march', 'may', 'april', 'june', 'july', 'august', 'october',
              'september', 'november', 'december', 'journal'}
 
-for in_name in ['_cut100', '_only_journals']:
-    for function in ['multilevel']:
-        dir = "G:\\Mestrado\\BD\\data\\formatted_output\\"
-        file_name = f'{function}_union_rec3{in_name}.txt'
-        f_out = open(f'{dir}most_frequent_words\\mfw_{file_name}', 'w')
+for in_name in ['']:
+    for function in ['fastgreedy', 'leading_eigenvector', 'walktrap', 'multilevel']:
+        for rec in [2]:
+            dir = "G:\\Mestrado\\BD\\data\\formatted_output\\"
+            file_name = f'{function}_union_rec{rec}{in_name}.txt'
+            f_out = open(f'{dir}most_frequent_words\\mfw_{file_name}', 'w')
 
-        frequent = defaultdict(int)
-        sentences = []
-        with open(dir + file_name, "r", encoding="utf-8") as f:
-            for line in f:
-                if line[0].isnumeric():
-                    if len(sentences) > 0:
-                        print(f'\tWith size {len(sentences)}')
-                        f_out.write(f'\tWith size {len(sentences)}\n')
-                        show_top(sentences, frequent, bad_words, f_out)
+            frequent = defaultdict(int)
+            sentences = []
+            with open(dir + file_name, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line[0].isnumeric():
+                        if len(sentences) > 0:
+                            print(f'\tWith size {len(sentences)}')
+                            f_out.write(f'\tWith size {len(sentences)}\n')
+                            show_top(sentences, frequent, bad_words, f_out)
 
-                    frequent = defaultdict(int)
-                    sentences = []
-                    print(f'Processing cluster {line[:-1]}')
-                    f_out.write(f'Processing cluster {line[:-1]}\n')
-                elif line[0] == '\t' and line[1].isnumeric():
-                    index1 = line.find(':')
-                    index2 = line[index1+1:].find(':')
-                    sentences.append(line[index1 + index2 + 2:].lower())
+                        frequent = defaultdict(int)
+                        sentences = []
+                        print(f'Processing cluster {line[:-1]}')
+                        f_out.write(f'Processing cluster {line[:-1]}\n')
+                    elif line[0] == '\t' and line[1].isnumeric():
+                        index1 = line.find(':')
+                        index2 = line[index1+1:].find(':')
+                        sentences.append(line[index1 + index2 + 2:].lower())
 
-            show_top(sentences, frequent, bad_words, f_out)
+                show_top(sentences, frequent, bad_words, f_out)
 
-        f_out.close()
+            f_out.close()

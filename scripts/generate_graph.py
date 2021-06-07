@@ -26,7 +26,7 @@ def binarySearch(alist, item):
 # 2: bipartido
 opcao_grafo = 0
 
-mode = 'union'
+mode = 'none'
 
 # Gerador no arquivo teste?
 if (len(sys.argv) < 3):
@@ -180,6 +180,8 @@ else:
                     elif mode == 'mean':
                         denom = (list_of_authors[v1].__len__() + list_of_authors[v2].__len__()) / 2
                         adj_mat[v1, v2] = common/denom
+                    elif mode == 'none':
+                        adj_mat[v1, v2] = common
                     adj_mat[v2, v1] = adj_mat[v1, v2]
             else:
                 if(common == 0):
