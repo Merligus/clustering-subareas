@@ -21,70 +21,9 @@ from sklearn.cluster import SpectralClustering
 from sklearn.cluster import DBSCAN
 from sklearn.cluster import OPTICS
 
-def cluster_rec(graph, function, threshold, times=3):
-    V = len(graph.vs.indegree())
-    graph['names'] = [v for v in range(V)]
-    graphs = [('', graph)]
-    VC = []
-    for _ in range(times):
-        new_graphs = []
-        for ind, g in graphs:
-            # Vertex Cluster
-            if function == 'fastgreedy':
-                vd = g.community_fastgreedy(weights=g.es['commonauthors'])
-                vc = vd.as_clustering()
-            elif function == 'infomap':
-                vc = g.community_infomap(edge_weights=g.es['commonauthors'])
-            elif function == 'leading_eigenvector':
-                vc = g.community_leading_eigenvector(weights=g.es['commonauthors'])
-            elif function == 'multilevel':
-                vc = g.community_multilevel(weights=g.es['commonauthors'])
-            elif function == 'walktrap':
-                vd = g.community_walktrap(weights=g.es['commonauthors'])
-                vc = vd.as_clustering()
-            elif function == 'optimal_modularity':
-                vc = g.community_optimal_modularity(weights=g.es['commonauthors'])
-            elif function == 'edge_betweenness':
-                vd = g.community_edge_betweenness(weights=g.es['commonauthors'], directed=False)
-                vc = vd.as_clustering()
-            elif function == 'spinglass':
-                vc = g.community_spinglass(weights=g.es['commonauthors'])
-            elif function == 'label_propagation':
-                initial_temp = {}
-                for vid in range(len(g.vs.indegree())):
-                    if g.vs[vid]['fixed']:
-                        if g.vs[vid]['initial'] not in initial_temp:
-                            initial_temp[g.vs[vid]['initial']] = len(initial_temp)
-                        g.vs[vid]['initial'] = initial_temp[g.vs[vid]['initial']]
-                vc = g.community_label_propagation(weights=g.es["commonauthors"], initial=g.vs["initial"], fixed=g.vs["fixed"])
-            elif function == 'community_leiden':
-                initial_temp = {}
-                for vid in range(len(g.vs.indegree())):
-                    if g.vs[vid]['fixed']:
-                        if g.vs[vid]['initial'] not in initial_temp:
-                            initial_temp[g.vs[vid]['initial']] = len(initial_temp)
-                        g.vs[vid]['initial'] = initial_temp[g.vs[vid]['initial']]
-                vc = g.community_leiden(weights=g.es["commonauthors"], initial_membership=g.vs["initial"])
-            else:
-                print('FUNCTION NOT RECOGNIZED')
-            # For each community
-            for e, comm in enumerate(vc):
-                # Too big, execute it again
-                if len(comm) > threshold:
-                    # Create the subgraph of the community
-                    sub_g = g.subgraph(comm, implementation='create_from_scratch')
-                    # Saving their real names
-                    sub_g['names'] = [g['names'][v] for v in comm]
-                    # Insert the subgraph in the queue of execution
-                    new_graphs.append((ind + str(e + 1) + '.', sub_g))
-                else:
-                    # No need to execute it again, just save their real names
-                    VC.append((ind + str(e + 1) + '.', [g['names'][v] for v in comm]))
-        del graphs
-        graphs = new_graphs
-    for ind, g in graphs:
-        VC.append((ind, g['names']))
-    return VC
+from agglomerative import Agglomerative
+from cluster_rec import ClusterRec
+
 
 # only_ground_truth=True, only_labeled=True para descobrir o valor maximo que silhouette chega com a matriz "distance"
 # only_ground_truth=False, only_labeled=True para comparar com o valor maximo do silhouette quando only_ground_truth=True
@@ -464,12 +403,15 @@ print(50*'*')
 
 V = len(G.vs.indegree())
 d = {}
-index = np.arange(V)
+y = np.arange(V)
+chosen = []
 for vid in range(V):
     d[vid] = G.vs[vid]["journalname"]
     if G.vs[vid]["journalname"] in initial:
         G.vs[vid]["initial"] = initial[G.vs[vid]["journalname"]]
         G.vs[vid]["fixed"] = True
+        y[vid] = initial[G.vs[vid]["journalname"]]
+        chosen.append(vid)
         # print(f'{G.vs[vid]["journalname"]} com initial={G.vs[vid]["initial"]} fixed={G.vs[vid]["fixed"]} tem min={min_pesos[vid]} e max={max_pesos[vid]}')
 
         # adjacency_list = index[adj_mat[vid, :] > 0]
@@ -480,6 +422,7 @@ for vid in range(V):
     else:
         G.vs[vid]["initial"] = -1
         G.vs[vid]["fixed"] = False
+        y[vid] = max(initial.values())+1
 print(50*'*')
 
 if do_mds:
@@ -614,13 +557,48 @@ if do_mds:
     # clustering_OPTICS = OPTICS(metric='precomputed').fit(distance)
     # print(clustering_OPTICS.labels_)
 
-elif opcao_grafo != 2:   
-    VC = cluster_rec(graph=G, function=function, threshold=0, times=TIMES)
-    file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
-    labels = info(file_out, VC, d, lideres, lista_iniciais, G, adj_mat)
-    #print(f'labels: \n{labels}')
-    del VC
-    file_out.close()
+elif opcao_grafo != 2:
+    if function != 'agglomerative':
+        model = ClusterRec(function=function, threshold=0, times=TIMES).fit(G)
+        file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
+        labels = info(file_out, model.VC, d, lideres, lista_iniciais, G, adj_mat)
+        del model
+        file_out.close()
+
+    elif function == 'agglomerative':
+        # Processing the authors sets of each journal
+        with open('../data/journals_dict' + in_name + '.pickle', 'rb') as handle:
+            journals = pickle.load(handle)
+
+        new_journals = dict(journals)
+        for key in journals:
+            new_journals[key].pop('journal_name', None)
+            new_journals[key].pop('journal_name_rough', None)
+            if(new_journals[key].__len__() == 0):
+                new_journals.pop(key, None)
+        journals = new_journals
+        
+        list_of_authors = []
+        journal_ind = {}
+        for index, journal in enumerate(journals):
+            list_of_authors.append(journals[journal])
+            journal_ind[journal] = index
+            if 'journal_name' in list_of_authors[-1] or 'journal_name_rough' in list_of_authors[-1]:
+                print(f'{journal} errado')
+
+        authors_sets = []
+        for authors in list_of_authors:
+            new_set = set()
+            for author in authors:
+                new_set.add(author)
+            authors_sets.append(new_set)
+
+        model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets)
+        plt.title('Hierarchical Clustering Dendrogram')
+        # plot the top three levels of the dendrogram
+        model.plot_dendrogram(truncate_mode='level', p=3)
+        plt.xlabel("Number of points in node (or index of point if no parenthesis).")
+        plt.savefig(f'../data/dendogram{in_name}.png')
 
     print(50*'-')
     print(f'Fim {function}')
