@@ -6,6 +6,7 @@ import random
 import xml.etree.ElementTree as ET
 import pickle
 import sys
+import os
 
 from sklearn import metrics
 from sklearn.manifold import MDS
@@ -439,19 +440,21 @@ if do_mds:
            3: {2: 0.00404, 3: 0.0134, 4: 0.0301, 5: 0.0454, 6: 0.0685, 7: 0.089, 32: 0.2382, 64: 0.2778, 128: 0.3033}}
     vbgmm_d = {}
     weights_mode = {0: 'normal', 1: '1or0', 2: 'd-1', 3: 'd-2'}
-    for w_o in [0, 1, 2, 3]:
+    for w_o in [0]:
         vbgmm_d[w_o] = {}
-        for n_comps in [2, 3, 4, 5, 6, 7, 32, 64, 128]:
+        for n_comps in [2, 7, 32, 128, 512, 2048, 4096]:
             embedders = [MDS(n_components=n_comps, dissimilarity='precomputed', metric=True, random_state=RANDOM_STATE, weight_option=w_o)] # TSNE(n_components=n_comps, metric='precomputed', random_state=RANDOM_STATE)]
             for embedding in embedders:
                 # Embedding
-                # X_transformed = embedding.fit_transform(distance) # shape = journals x n_components
                 filename = f"../data/distance_embedded/X_transformed_{n_comps}dim_{weights_mode[w_o]}weight.npy"
-                with open(filename, "rb") as f:
-                    X_transformed = np.load(f)
-                # with open(filename, "wb") as f:
-                #     np.save(f, X_transformed)
-                # print(f'Stress = {embedding.stress_} com {n_comps} componentes')
+                if os.path.exists(filename):
+                    with open(filename, "rb") as f:
+                        X_transformed = np.load(f)
+                else:
+                    X_transformed = embedding.fit_transform(distance) # shape = journals x n_components
+                    with open(filename, "wb") as f:
+                        np.save(f, X_transformed)
+                    print(f'Stress = {embedding.stress_} com {n_comps} componentes')
 
                 # DBSCAN
                 # dbscan_c = DBSCAN(eps=eps[w_o][n_comps])
@@ -463,7 +466,7 @@ if do_mds:
                 # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
                 # file_out.close()
 
-                for n_clus in [20, 40]:
+                for n_clus in [20, 40, 60, 80, 100, 120, 140, 160, 180, 200]:
                     # Clustering
                     # K-means
                     k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
@@ -485,19 +488,19 @@ if do_mds:
                     info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
                     file_out.close()
 
-                    # VBGMM
-                    vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
-                    vbgmm_c.fit(X_transformed)
-                    print(f'MDS VBGMM weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps} {"converged" if vbgmm_c.converged_ else "did not converge"}')
-                    vbgmm_labels = vbgmm_c.predict(X_transformed)
-                    VC = show_communities_length(vbgmm_labels)
+                    # # VBGMM
+                    # vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
+                    # vbgmm_c.fit(X_transformed)
+                    # print(f'MDS VBGMM weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps} {"converged" if vbgmm_c.converged_ else "did not converge"}')
+                    # vbgmm_labels = vbgmm_c.predict(X_transformed)
+                    # VC = show_communities_length(vbgmm_labels)
 
-                    file_out = open(f'../data/trash.txt', "w")
-                    info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                    file_out.close()
+                    # file_out = open(f'../data/trash.txt', "w")
+                    # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    # file_out.close()
 
-                    # add the classified labels in order to compare
-                    vbgmm_d[w_o][n_comps] = vbgmm_labels
+                    # # add the classified labels in order to compare
+                    # vbgmm_d[w_o][n_comps] = vbgmm_labels
                 del X_transformed
 
     # comparing the results
@@ -594,9 +597,12 @@ elif opcao_grafo != 2:
             authors_sets.append(new_set)
 
         model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets)
+        p = 20
+        min_d, max_d = np.min(model.distances_[-p:]), np.max(model.distances_[-p:])
+        model.distances_[-p:] = (model.distances_[-p:] - min_d) / (max_d - min_d)
         plt.title('Hierarchical Clustering Dendrogram')
         # plot the top three levels of the dendrogram
-        model.plot_dendrogram(truncate_mode='level', p=3)
+        model.plot_dendrogram(truncate_mode='lastp', p=p, distance_sort=True)
         plt.xlabel("Number of points in node (or index of point if no parenthesis).")
         plt.savefig(f'../data/dendogram{in_name}.png')
 

@@ -15,7 +15,7 @@ class Agglomerative:
 
         n_samples = adj_mat.shape[0]
         if self.n_clusters > n_samples or self.n_clusters < 1:
-            raise TypeError(f'n_clusters must be in [1, {V}]. n_clusters = {self.n_clusters}')
+            raise TypeError(f'n_clusters must be in [1, {n_samples}]. n_clusters = {self.n_clusters}')
 
         self.labels_ = np.array([i for i in range(adj_mat.shape[0])])
         # dictionary to get the real index of the node
