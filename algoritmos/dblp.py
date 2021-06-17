@@ -403,15 +403,15 @@ for journal in initial:
 print(50*'*')
 
 V = len(G.vs.indegree())
-d = {}
-y = np.arange(V)
+index_to_journalname = {}
+index_to_ground_truth = {}
 chosen = []
 for vid in range(V):
-    d[vid] = G.vs[vid]["journalname"]
+    index_to_journalname[vid] = G.vs[vid]["journalname"]
     if G.vs[vid]["journalname"] in initial:
         G.vs[vid]["initial"] = initial[G.vs[vid]["journalname"]]
         G.vs[vid]["fixed"] = True
-        y[vid] = initial[G.vs[vid]["journalname"]]
+        index_to_ground_truth[vid] = initial[G.vs[vid]["journalname"]]
         chosen.append(vid)
         # print(f'{G.vs[vid]["journalname"]} com initial={G.vs[vid]["initial"]} fixed={G.vs[vid]["fixed"]} tem min={min_pesos[vid]} e max={max_pesos[vid]}')
 
@@ -423,7 +423,6 @@ for vid in range(V):
     else:
         G.vs[vid]["initial"] = -1
         G.vs[vid]["fixed"] = False
-        y[vid] = max(initial.values())+1
 print(50*'*')
 
 if do_mds:
@@ -463,31 +462,36 @@ if do_mds:
                 # VC = show_communities_length(dbscan_c.labels_)
 
                 # file_out = open(f"../data/original_output/dbscan{test_name}_{n_comps}dim_{weights_mode[w_o]}weights_{in_name}.txt", "w")
-                # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                # info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
                 # file_out.close()
 
                 for n_clus in [20, 40, 60, 80, 100, 120, 140, 160, 180, 200]:
                     # Clustering
                     # K-means
-                    k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
-                    k_means.fit(X_transformed)
-                    print(f'MDS KMeans weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps}')
-                    VC = show_communities_length(k_means.labels_)
+                    try:
+                        k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
+                        k_means.fit(X_transformed)
+                        print(f'MDS KMeans weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps}')
+                        VC = show_communities_length(k_means.labels_)
 
-                    file_out = open(f'../data/trash.txt', "w")
-                    info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                    file_out.close()
+                        file_out = open(f'../data/trash.txt', "w")
+                        info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                        file_out.close()
+                    except:
+                        _ = 1
 
                     # GMM
-                    gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
-                    gmm_c.fit(X_transformed)
-                    print(f'MDS GMM weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps} {"converged" if gmm_c.converged_ else "did not converge"}')
-                    VC = show_communities_length(gmm_c.predict(X_transformed))
+                    try:
+                        gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
+                        gmm_c.fit(X_transformed)
+                        print(f'MDS GMM weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps} {"converged" if gmm_c.converged_ else "did not converge"}')
+                        VC = show_communities_length(gmm_c.predict(X_transformed))
 
-                    file_out = open(f'../data/trash.txt', "w")
-                    info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                    file_out.close()
-
+                        file_out = open(f'../data/trash.txt', "w")
+                        info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                        file_out.close()
+                    except:
+                        _ = 1
                     # # VBGMM
                     # vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
                     # vbgmm_c.fit(X_transformed)
@@ -496,7 +500,7 @@ if do_mds:
                     # VC = show_communities_length(vbgmm_labels)
 
                     # file_out = open(f'../data/trash.txt', "w")
-                    # info(file_out, VC, d, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    # info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
                     # file_out.close()
 
                     # # add the classified labels in order to compare
@@ -564,7 +568,7 @@ elif opcao_grafo != 2:
     if function != 'agglomerative':
         model = ClusterRec(function=function, threshold=0, times=TIMES).fit(G)
         file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
-        labels = info(file_out, model.VC, d, lideres, lista_iniciais, G, adj_mat)
+        labels = info(file_out, model.VC, index_to_journalname, lideres, lista_iniciais, G, adj_mat)
         del model
         file_out.close()
 
@@ -596,7 +600,16 @@ elif opcao_grafo != 2:
                 new_set.add(author)
             authors_sets.append(new_set)
 
-        model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets)
+        model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets, metrics_it=1, ground_truth=index_to_ground_truth, debug=True)
+        it = np.argmax(model.metrics_, axis=0)
+        best_metrics = ["Adjusted Rand Score", 
+                        "Adjusted Mutual Information",
+                        "Homogeneity",
+                        "Completeness",
+                        "V-measure",
+                        "Fowlkes-Mallows"]
+        for m_ind, m_name in enumerate(best_metrics):
+            print(f'Best {m_name}: {model.metrics_[it[m_ind], m_ind]} at iteration {it[m_ind]}')
         p = 20
         min_d, max_d = np.min(model.distances_[-p:]), np.max(model.distances_[-p:])
         model.distances_[-p:] = (model.distances_[-p:] - min_d) / (max_d - min_d)

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.cluster.hierarchy import dendrogram
+from sklearn import metrics
 
 class Agglomerative:
 
@@ -8,7 +9,7 @@ class Agglomerative:
         self.mode = mode
         self.check_symmetry = check_symmetry
 
-    def fit(self, adj_mat, authors_sets, debug=False):
+    def fit(self, adj_mat, authors_sets, debug=False, metrics_it=1, ground_truth={}):
         if self.check_symmetry:
             if not np.allclose(adj_mat, adj_mat.T):
                 raise TypeError('Adjacency matrix must be symmetric')
@@ -16,6 +17,9 @@ class Agglomerative:
         n_samples = adj_mat.shape[0]
         if self.n_clusters > n_samples or self.n_clusters < 1:
             raise TypeError(f'n_clusters must be in [1, {n_samples}]. n_clusters = {self.n_clusters}')
+
+        if metrics_it < 1:
+            raise TypeError(f'metrics_it must be greater or equal 1. metrics_it = {metrics_it}')
 
         self.labels_ = np.array([i for i in range(adj_mat.shape[0])])
         # dictionary to get the real index of the node
@@ -31,14 +35,23 @@ class Agglomerative:
         i = 0
         distances = []
         children = []
+        metrics_l = []
+        true_index = {}
+        for index in ground_truth:
+            true_index[index] = index
         max_adj_mat = adj_mat.max()
         while i < n_samples - self.n_clusters:
             # find the vertices of max similarity
             v1, v2 = np.unravel_index(np.argmax(adj_mat, axis=None), adj_mat.shape)
             if debug:
                 print(f'adj_mat[{v1}, {v2}] = {adj_mat[v1, v2]}')
-            # v1 must be less or equal than v2
-            v1, v2 = min(v1, v2), max(v1, v2)
+            # v1 and v2 must be gathered in a ground truth vertice
+            if v2 in ground_truth:
+                v1, v2 = v2, v1
+                if v2 in ground_truth:
+                    for vid in labels_sets[v2]:
+                        if vid in ground_truth:
+                            true_index[vid] = v1
             if debug:
                 print(f'v1={v1} v2={v2}')
             # update the set of authors of the new vertice (v1 + v2)
@@ -98,7 +111,33 @@ class Agglomerative:
             authors_sets[v2] = {-1}
             nodes[v2] = -1
             labels_sets[v2] = {-1}
-
+            # if metrics > 0, check metrics every <metrics> iterations
+            if len(ground_truth) > 0 and i % metrics_it == 0:
+                labels_true = []
+                labels_pred = []
+                for vid in true_index:
+                    if vid in labels_sets[true_index[vid]]:
+                        labels_true.append(ground_truth[vid])
+                        labels_pred.append(true_index[vid])
+                    else:
+                        raise TypeError(f'vid:{vid} should be in labels_sets[{true_index[vid]}] but it is not.')
+                ARS = metrics.adjusted_rand_score(labels_true, labels_pred)
+                AMIS = metrics.adjusted_mutual_info_score(labels_true, labels_pred)
+                HS = metrics.homogeneity_score(labels_true, labels_pred)
+                CS = metrics.completeness_score(labels_true, labels_pred)
+                VMS = metrics.v_measure_score(labels_true, labels_pred)
+                FMS = metrics.fowlkes_mallows_score(labels_true, labels_pred)
+                if debug:
+                    print(50*'*')
+                    print(f'Iteration {i}')
+                    print(f'Adjusted Rand index: {ARS:.2f}')
+                    print(f'Adjusted Mutual Information: {AMIS:.2f}')
+                    print(f'Homogeneity: {HS:.2%}')
+                    print(f'Completeness: {CS:.2%}')
+                    print(f'V-measure: {VMS:.2%}')
+                    print(f'Fowlkes-Mallows: {FMS:.2%}')
+                    print(50*'*')
+                metrics_l.append([ARS, AMIS, HS, CS, VMS, FMS])
             np.fill_diagonal(adj_mat, 0)
         
         for c, set_c in enumerate(labels_sets):
@@ -106,6 +145,7 @@ class Agglomerative:
                 self.labels_[v] = c
         self.children_ = np.array(children)
         self.distances_ = np.array(distances)
+        self.metrics_ = np.array(metrics_l)
         return self
 
     # Code from https://scikit-learn.org/stable/auto_examples/cluster/plot_agglomerative_dendrogram.html#sphx-glr-auto-examples-cluster-plot-agglomerative-dendrogram-py
