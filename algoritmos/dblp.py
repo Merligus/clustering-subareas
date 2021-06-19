@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 from igraph import *
 from nltk.featstruct import _default_fs_class
@@ -90,36 +91,6 @@ def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_grou
     else: # Sem ground truth
         print(f'Silhouette: {metrics.silhouette_score(distance, labels, metric=metric):.2f}')
     return labels
-
-def modularity(C, G):
-    weights = G.es["commonauthors"]
-    W = sum(weights)
-    edge_list = G.get_edgelist()
-    a_in = [0]*G.vs.indegree().__len__()
-    a_out = [0]*G.vs.indegree().__len__()
-
-    comm_index = 0
-    membership = [0]*G.vs.indegree().__len__()
-    for comm in C:
-        for v in comm:
-            membership[v] = comm_index
-        comm_index += 1
-    
-    for eid, v in enumerate(edge_list):
-        vi, vj = v
-        a_out[vi] += weights[eid]
-        a_in[vj] += weights[eid]
-
-    mod = 0.0
-    for eid, v in enumerate(edge_list):
-        vi, vj = v
-        ci = membership[vi]
-        cj = membership[vj]
-        if ci == cj:
-            mod += weights[eid]
-            mod -= a_out[vi]*a_in[vj]/W
-
-    return mod/W
 
 def show_communities_length(labels):
     d = {}
@@ -600,7 +571,12 @@ elif opcao_grafo != 2:
                 new_set.add(author)
             authors_sets.append(new_set)
 
-        model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets, metrics_it=1, ground_truth=index_to_ground_truth, debug=True)
+        p = adj_mat.shape[0] - 786 + 20
+        if TIMES == 0:
+            TIMES = np.inf
+        model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets, max_iter=TIMES, metrics_it=1, ground_truth=index_to_ground_truth, debug=True)
+
+        # show best metrics
         it = np.argmax(model.metrics_, axis=0)
         best_metrics = ["Adjusted Rand Score", 
                         "Adjusted Mutual Information",
@@ -609,15 +585,23 @@ elif opcao_grafo != 2:
                         "V-measure",
                         "Fowlkes-Mallows"]
         for m_ind, m_name in enumerate(best_metrics):
-            print(f'Best {m_name}: {model.metrics_[it[m_ind], m_ind]} at iteration {it[m_ind]}')
-        p = 20
-        min_d, max_d = np.min(model.distances_[-p:]), np.max(model.distances_[-p:])
-        model.distances_[-p:] = (model.distances_[-p:] - min_d) / (max_d - min_d)
+            print(f'Best {m_name}: {model.metrics_[it[m_ind], m_ind]} at iteration {it[m_ind]+1}')
+        
+        # plot dendogram
+        # min_d, max_d = np.min(model.distances_[-p:]), np.max(model.distances_[-p:])
+        # model.distances_[-p:] = (model.distances_[-p:] - min_d) / (max_d - min_d)
+        matplotlib.rcParams['lines.linewidth'] = 0.5
         plt.title('Hierarchical Clustering Dendrogram')
         # plot the top three levels of the dendrogram
         model.plot_dendrogram(truncate_mode='lastp', p=p, distance_sort=True)
         plt.xlabel("Number of points in node (or index of point if no parenthesis).")
         plt.savefig(f'../data/dendogram{in_name}.png')
+
+        # save in a formatted file
+        # VC = show_communities_length(model.labels_)
+        # file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
+        # info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, adj_mat)
+        # file_out.close()
 
     print(50*'-')
     print(f'Fim {function}')

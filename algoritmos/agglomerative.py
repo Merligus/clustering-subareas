@@ -9,7 +9,7 @@ class Agglomerative:
         self.mode = mode
         self.check_symmetry = check_symmetry
 
-    def fit(self, adj_mat, authors_sets, debug=False, metrics_it=1, ground_truth={}):
+    def fit(self, adj_mat, authors_sets, debug=False, metrics_it=1, ground_truth={}, max_iter=np.inf):
         if self.check_symmetry:
             if not np.allclose(adj_mat, adj_mat.T):
                 raise TypeError('Adjacency matrix must be symmetric')
@@ -40,7 +40,7 @@ class Agglomerative:
         for index in ground_truth:
             true_index[index] = index
         max_adj_mat = adj_mat.max()
-        while i < n_samples - self.n_clusters:
+        while i < n_samples - self.n_clusters and i < max_iter:
             # find the vertices of max similarity
             v1, v2 = np.unravel_index(np.argmax(adj_mat, axis=None), adj_mat.shape)
             if debug:
@@ -140,9 +140,12 @@ class Agglomerative:
                 metrics_l.append([ARS, AMIS, HS, CS, VMS, FMS])
             np.fill_diagonal(adj_mat, 0)
         
-        for c, set_c in enumerate(labels_sets):
-            for v in set_c:
-                self.labels_[v] = c
+        c = 0
+        for set_c in labels_sets:
+            if -1 not in set_c:
+                for v in set_c:
+                    self.labels_[v] = c
+                c += 1
         self.children_ = np.array(children)
         self.distances_ = np.array(distances)
         self.metrics_ = np.array(metrics_l)
