@@ -1,15 +1,17 @@
 import csv
 import numpy as np
 from numpy import linalg as LA
+from scipy.optimize import nnls
 
 class MDS:
-    def __init__(self, type="ratio", ndim = 2, weight_option = 0, 
+    def __init__(self, type="ratio", ndim = 2, weight_option = 0, verbose = False,
                      init = "torgerson", ties = "primary", relax = False, 
                      modulus = 1, itmax = 1000, eps = 1e-6, spline_degree = 2, 
                      spline_intKnots = 2):
         self.type = type
         self.ndim = ndim
         self.weight_option = weight_option
+        self.verbose = verbose
         self.init = init
         self.ties = ties
         self.relax = relax
@@ -95,6 +97,7 @@ class MDS:
         return {'x': x[indices],
                 'x_unique': x_unique,
                 'n': n,
+                'n_nonmis': n_nonmis,
                 'trans': trans,
                 'spline_allKnots': self.spline_intKnots + 2,
                 'spline_degree': self.spline_degree,
@@ -126,12 +129,133 @@ class MDS:
         return LA.inv(x+nn)-nn
 
     def bmat(self, diss, wgths, d, eps=1e-12):
-        d_indices = np.triu_indices_from(d, k=1)
-        d[5, 0] = d[0, 5] = 1e-13
         z = np.where(d < eps, 1, 0)
         b = (wgths*diss*(1-z))/(d+z)
         r = np.sum(b, axis=1)
         return np.diag(r)-b
+
+    def weightedMean(self, y, sumwvec, target, w, iord, ties, n, nties):
+        nprevties = 0
+        for k in range(nties):
+            sumwt = 0.
+            sumw = 0.
+            for l in range(ties[k]):
+                ind = iord[nprevties + l]
+                sumwt += w[ind]*target[ind]
+                sumw += w[ind]
+            if sumw > 1e-10:
+                y[k] = sumwt / sumw
+            else:
+                y[k] = 0.
+            sumwvec[k] = sumw
+            nprevties += ties[k]
+    
+    def wmonreg(self, disp_o, w, n):
+        disp = np.copy(disp_o)
+        lovbkh = 0
+        wovbkh = 0
+        luph = -1
+        for iup in range(1, n):
+            if disp[iup] < disp[iup - 1]:
+                sds = w[iup] * disp[iup]
+                sw = w[iup]
+                idown = iup
+                while True:
+                    idown -= 1
+                    if luph == idown:
+                        sds += wovbkh * disp[luph]
+                        sw += wovbkh
+                        idown = idown - lovbkh
+                    else:
+                        sds += w[idown] * disp[idown]
+                        sw += w[idown]
+                    trialv = sds / sw
+                    if idown == 0:
+                        break
+                    if disp[idown - 1] <= trialv:
+                        break
+                wovbkh = 0
+                for j in range(idown, iup+1):
+                    disp[j] = trialv
+                    wovbkh += w[j]
+                lovbkh = iup - idown
+                luph = iup
+        return disp
+
+    def transform(self, Target, x, w=None, normq=0):
+        if type(w) == type(None):
+            w = np.ones(len(x['x']))
+        n = len(x['x'])
+        b = None
+        iord3 = x['iord']
+        Result = np.zeros(n)
+        if x['missing'] == "none":
+            ind_act = x['iord_nonmis']
+            nties_act = x['nties_nonmis']
+        elif x['missing'] in {"single", "multiple"}:
+            ind_act = x['iord']
+            nties_act = len(x['ties'])
+        
+        y = np.zeros(nties_act)
+        w2 = np.zeros(nties_act)
+
+        Target_indices = np.triu_indices_from(Target, k=1)
+        w_indices = np.triu_indices_from(w, k=1)
+        self.weightedMean(y, w2, Target[Target_indices], w[w_indices], x['iord'], x['ties'], n, nties_act)
+        
+        if n > x['n_nonmis'] and x['missing'] in {"single", "multiple"}:
+            Result[x['iord_mis']] = y[x['nties_nonmis']: len(x['ties'])]
+        
+        if x['trans'] == "none":
+            Result[x['iord_nonmis']] = x['x'][x['iord_nonmis']]
+        elif x['trans'] in {"linear","interval","mlinear","minterval","mspline","spline"}:
+            ind_ties_nonmis = np.arange(0, x['nties_nonmis'])
+            w3 = w2[ind_ties_nonmis]
+            y3 = y[ind_ties_nonmis]
+
+            ncoef = x['base'].shape[1]
+            A = np.multiply(np.sqrt(w3), x['base'].T).T
+            f = np.multiply(np.sqrt(w3), y3)
+            if x['trans'] in {"spline","interval","linear"}:
+                f = np.dot(A.T, f)
+                A = np.dot(A.T, A)
+                b = LA.solve(A, f.T)
+            else:
+                b, nnls_norm = nnls(A, f)
+            Result[x['iord_nonmis']] = np.repeat(np.dot(x['base'], b), x['ties'][ind_ties_nonmis])
+        elif x['trans'] in {"nominals","nominal"}:
+            Result[x['iord_nonmis']] = np.repeat(y, x['ties'][np.arange(0, nties_act)])
+        elif x['trans'] == "ordinalp":
+            iord3 = np.argsort(x['x'])
+            if n > x['n_nonmis']:
+                iord3_nonmis = iord3[:x['n_nonmis']]
+            else:
+                iord3_nonmis = iord3
+            
+            Result[iord3_nonmis] = self.wmonreg(Target[Target_indices][iord3_nonmis], w[w_indices][iord3_nonmis], x['n_nonmis'])
+        elif x['trans'] in {"ordinals","ordinalt","ordinal"}:
+            ycon = self.wmonreg(y, w2, x['nties_nonmis'])
+            ind_ties_nonmis = np.arange(0, x['nties_nonmis'])
+            if x['trans'] in {"ordinals","ordinal"}:
+                Result[x['iord_nonmis']] = np.repeat(ycon[ind_ties_nonmis], x['ties'][np.arange(0, x['nties_nonmis'])])
+            else:
+                Result[x['iord_nonmis']] = Target[Target_indices][x['iord_nonmis']] + \
+                                            np.repeat(ycon[ind_ties_nonmis] - y[ind_ties_nonmis], x['ties'][np.arange(0, x['nties_nonmis'])])
+
+        if normq > 0:
+            Result = Result * np.sqrt(normq/np.sum(w[w_indices]*np.square(Result)))
+        
+        return {'res': Result,
+                'b': b,
+                'iord_prim': iord3}
+    
+    def spp(self, dhat, confdiss, wgths):
+        resmat = np.multiply(wgths, np.square(dhat - confdiss))
+        np.fill_diagonal(resmat, np.nan)
+        spp = np.nanmean(resmat, axis=0)
+        spp = spp/np.sum(spp)*100
+        return {'spp': spp,
+                'resmat': resmat}
 
     def smacof(self, delta):
         diss = delta
@@ -195,18 +319,59 @@ class MDS:
         d = lb*d
 
         sold = np.nansum(wgths*np.square(dhat-d))/(2*nn)
+        dhat_uindices = np.triu_indices_from(dhat, k=1)
+        dhat_lindices = np.tril_indices_from(dhat, k=-1)
         while True:
             b = self.bmat(dhat, wgths, d)
             y = np.dot(v, np.dot(b, x))
             y = x + self.relax*(y-x)
             combinations = np.indices((y.shape[0], y.shape[0]))
             e = np.sqrt(np.sum(np.square(y[combinations[0], :] - y[combinations[1], :]), axis=2))
-            ssma = np.sum(wgths*np.square(dhat-e))/2
 
-            break
+            dhat2 = self.transform(e, disobj, w=wgths, normq=nn)
+            wgths_indices = np.triu_indices_from(wgths, k=1)
+            e_indices = np.triu_indices_from(e, k=1)
+            snon = np.sum(wgths[wgths_indices]*np.square(dhat2['res']-e[e_indices]))/nn
+            
+            if self.verbose:
+                print(f"Iteration: {itel:3}  Stress (raw): {snon:12.8f}  Difference: {sold-snon:12.8f}")
+            
+            if ((sold-snon) < self.eps) or (itel == self.itmax):
+                break
+            x = y
+            d = e
+            sold = snon
+            dhat[dhat_uindices] = dhat2['res']
+            dhat[dhat_lindices] = dhat[dhat_lindices[1], dhat_lindices[0]]
+            itel = itel+1
 
-        # tirar break do original
-        return 0.1
+        stress = np.sqrt(snon)
+        dhat[np.isnan(diss)] = np.nan
+
+        confdiss = self.normDissN(e, wgths, 1)
+
+        combinations = np.indices((y.shape[0], y.shape[0]))
+        dy = np.sqrt(np.sum(np.square(y[combinations[0], :] - y[combinations[1], :]), axis=2))
+        spoint = self.spp(dhat, dy, wgths)
+        rss = np.sum(spoint['resmat'][np.tril_indices_from(spoint['resmat'], k=-1)])
+
+        if itel == self.itmax:
+            print("Iteration limit reached! You may want to increase the itmax argument!")
+
+        return {'delta': diss,
+                'dhat': dhat,
+                'confdist': dy,
+                'iord': dhat2['iord_prim'],
+                'conf': y,
+                'stress': stress,
+                'spp': spoint['spp'],
+                'ndim': p,
+                'weightmat': wgths,
+                'resmat': spoint['resmat'],
+                'rss': rss,
+                'init': xstart,
+                'model': "Symmetric SMACOF",
+                'type': self.type}
 
 with open("G:\Mestrado\BD\data\idiss.csv") as csvfile:
     spamreader = csv.reader(csvfile, delimiter=',')
@@ -218,6 +383,7 @@ with open("G:\Mestrado\BD\data\idiss.csv") as csvfile:
         array.append(line)
     idiss = np.array(array)
 
-idiss[0, 1] = idiss[1, 0] = np.nan
-idiss[3, 2] = idiss[2, 3] = np.nan
-model = MDS().smacof(idiss)
+# idiss[0, 1] = idiss[1, 0] = np.nan
+# idiss[3, 2] = idiss[2, 3] = np.nan
+model = MDS(type = "interval").smacof(idiss)
+print(model['stress'])
