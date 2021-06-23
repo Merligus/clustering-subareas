@@ -4,7 +4,7 @@ from numpy import linalg as LA
 from scipy.optimize import nnls
 
 class MDS:
-    def __init__(self, type="ratio", ndim = 2, weight_option = 0, verbose = False,
+    def __init__(self, type="ratio", ndim = 2, weight_option = 'normal', verbose = False,
                      init = "torgerson", ties = "primary", relax = False, 
                      modulus = 1, itmax = 1000, eps = 1e-6, spline_degree = 2, 
                      spline_intKnots = 2):
@@ -257,7 +257,10 @@ class MDS:
         return {'spp': spp,
                 'resmat': resmat}
 
-    def smacof(self, delta):
+    def fit(self, delta):
+        if not np.allclose(delta, delta.T, equal_nan=True):
+            raise TypeError('Distance matrix must be symmetric')
+
         diss = delta
         p = self.ndim
         n = diss.shape[0]
@@ -265,22 +268,22 @@ class MDS:
             raise TypeError(f"Maximum number of dimensions is {n-1}!")
 
         nn = n*(n-1)/2
-        opcao = ['um', 'um_ou_zero', '1/d', '1/d2']
-        opcao_n = self.weight_option
-        if opcao[opcao_n] == 'um':
+        if self.weight_option == 'normal':
             wgths = np.ones_like(diss)
-        elif opcao[opcao_n] == 'um_ou_zero':
+        elif self.weight_option == '1or0':
             wgths = np.where(diss == np.max(diss), 0., 1.)
-        elif opcao[opcao_n] == '1/d':
+        elif self.weight_option == 'd-1':
             diss = np.where(diss == 0., np.inf, diss)
             d_min = np.min(diss)
             wgths = (1. / diss) / (1. / d_min)
             diss = np.where(diss == np.inf, 0, diss)
-        elif opcao[opcao_n] == '1/d2':
+        elif self.weight_option == 'd-2':
             diss = np.where(diss == 0., np.inf, diss)
             d_min = np.min(diss)
             wgths = (1. / diss ** 2) / (1. / d_min ** 2)
             diss = np.where(diss == np.inf, 0, diss)
+        else:
+            raise TypeError(f"Weight option {self.weight_option} not defined.")
         wgths[np.isnan(diss)] = 0.
 
         x = self.initConf(diss, n, p)
@@ -348,7 +351,7 @@ class MDS:
         stress = np.sqrt(snon)
         dhat[np.isnan(diss)] = np.nan
 
-        confdiss = self.normDissN(e, wgths, 1)
+        # confdiss = self.normDissN(e, wgths, 1)
 
         combinations = np.indices((y.shape[0], y.shape[0]))
         dy = np.sqrt(np.sum(np.square(y[combinations[0], :] - y[combinations[1], :]), axis=2))
@@ -373,17 +376,17 @@ class MDS:
                 'model': "Symmetric SMACOF",
                 'type': self.type}
 
-with open("G:\Mestrado\BD\data\idiss.csv") as csvfile:
-    spamreader = csv.reader(csvfile, delimiter=',')
-    array = []
-    for row in spamreader:
-        line = []
-        for item in row:
-            line.append(float(item))
-        array.append(line)
-    idiss = np.array(array)
+# with open("G:\Mestrado\BD\data\idiss.csv") as csvfile:
+#     spamreader = csv.reader(csvfile, delimiter=',')
+#     array = []
+#     for row in spamreader:
+#         line = []
+#         for item in row:
+#             line.append(float(item))
+#         array.append(line)
+#     idiss = np.array(array)
 
 # idiss[0, 1] = idiss[1, 0] = np.nan
 # idiss[3, 2] = idiss[2, 3] = np.nan
-model = MDS(type = "interval").smacof(idiss)
-print(model['stress'])
+# model = MDS(type = "interval").fit(idiss)
+# print(model['conf'])

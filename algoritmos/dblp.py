@@ -10,7 +10,7 @@ import sys
 import os
 
 from sklearn import metrics
-from sklearn.manifold import MDS
+# from sklearn.manifold import MDS
 from sklearn.manifold import TSNE
 
 from sklearn.cluster import KMeans
@@ -25,6 +25,7 @@ from sklearn.cluster import OPTICS
 
 from agglomerative import Agglomerative
 from cluster_rec import ClusterRec
+from smacof import MDS
 
 
 # only_ground_truth=True, only_labeled=True para descobrir o valor maximo que silhouette chega com a matriz "distance"
@@ -112,22 +113,23 @@ def show_communities_length(labels):
 
 print('STARTING')
 
-if(len(sys.argv) < 7):
+if(len(sys.argv) < 8):
     print("Falta parametros")
     exit()
-elif(len(sys.argv) > 7):
+elif(len(sys.argv) > 8):
     print("Muitos parametros")
     exit()
 else:
     log_transf = bool(int(sys.argv[1]))
     mode = sys.argv[2] # mean, min, union
-    function = sys.argv[3] # multilevel, fastgreedy,  . . .
+    function = sys.argv[3] # multilevel, fastgreedy, agglomerative, reciprocal, . . .
     TIMES = int(sys.argv[4])
     n_components = int(sys.argv[5])
     if sys.argv[6] != '-':
         in_name = '_' + sys.argv[6]
     else:
         in_name = ''
+    nan_sub = bool(int(sys.argv[7])) # True -> adj_mat[==0] = nan
 
 RANDOM_STATE = 5
 random.seed(RANDOM_STATE)
@@ -398,9 +400,17 @@ print(50*'*')
 
 if do_mds:
     # Generating 
-    # adj_mat = adj_mat + 1e-10
-    # distance = 1/adj_mat
-    distance = adj_mat.max() - adj_mat
+    if nan_sub:
+        adj_mat = np.where(adj_mat == 0, np.nan, adj_mat)
+
+    if function == "reciprocal":
+        adj_mat = adj_mat + 1e-10
+        distance = 1/adj_mat
+    elif function == "reverse":
+        distance =  np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
+    else:
+        raise TypeError(f'Function {function} not defined.')
+    del adj_mat
     np.fill_diagonal(distance, 0)
     
     # eps for DBSCAN
@@ -409,40 +419,46 @@ if do_mds:
            2: {2: 0.00485, 3: 0.0139, 4: 0.028, 5: 0.0475, 6: 0.0676, 7: 0.0877, 32: 0.2382, 64: 0.2778, 128: 0.3033},
            3: {2: 0.00404, 3: 0.0134, 4: 0.0301, 5: 0.0454, 6: 0.0685, 7: 0.089, 32: 0.2382, 64: 0.2778, 128: 0.3033}}
     vbgmm_d = {}
-    weights_mode = {0: 'normal', 1: '1or0', 2: 'd-1', 3: 'd-2'}
-    for w_o in [0]:
+    for w_o in ['1or0', 'normal', 'd-1', 'd-2']:
         vbgmm_d[w_o] = {}
-        for n_comps in [2, 7, 32, 128, 512, 2048, 4096]:
-            embedders = [MDS(n_components=n_comps, dissimilarity='precomputed', metric=True, random_state=RANDOM_STATE, weight_option=w_o)] # TSNE(n_components=n_comps, metric='precomputed', random_state=RANDOM_STATE)]
+        for n_comps in [2, 3, 4, 5, 6, 7, 32, 64, 128, 512, 2048, 4096]:
+            # embedders = [MDS(n_components=n_comps, dissimilarity='precomputed', metric=True, random_state=RANDOM_STATE, weight_option=w_o)] # TSNE(n_components=n_comps, metric='precomputed', random_state=RANDOM_STATE)]
+            embedders = [MDS(ndim=n_comps, weight_option=w_o)]
             for embedding in embedders:
                 # Embedding
-                filename = f"../data/distance_embedded/X_transformed_{n_comps}dim_{weights_mode[w_o]}weight.npy"
-                if os.path.exists(filename):
+                filename = f"../data/distance_embedded/X_transformed_{n_comps}dim_{w_o}weight_{function}function_{nan_sub}nan.npy"
+                if os.path.exists(filename) and False:
                     with open(filename, "rb") as f:
                         X_transformed = np.load(f)
                 else:
-                    X_transformed = embedding.fit_transform(distance) # shape = journals x n_components
-                    with open(filename, "wb") as f:
-                        np.save(f, X_transformed)
-                    print(f'Stress = {embedding.stress_} com {n_comps} componentes')
+                    try:
+                        mds_model = embedding.fit(distance) # shape = journals x n_components
+                        X_transformed = mds_model['conf']
+                        del mds_model
+                        with open(filename, "wb") as f:
+                            np.save(f, X_transformed)
+                        print(f'Stress = {mds_model["stress"]} com {n_comps} componentes')
+                    except:
+                        X_transformed = 0
+                        continue
 
                 # DBSCAN
                 # dbscan_c = DBSCAN(eps=eps[w_o][n_comps])
                 # dbscan_c.fit(X_transformed)
-                # print(f'MDS DBSCAN weights={weights_mode[w_o]} eps={eps[w_o][n_comps]} n_components = {n_comps}')
+                # print(f'MDS DBSCAN weights={w_o} eps={eps[w_o][n_comps]} n_components = {n_comps}')
                 # VC = show_communities_length(dbscan_c.labels_)
 
-                # file_out = open(f"../data/original_output/dbscan{test_name}_{n_comps}dim_{weights_mode[w_o]}weights_{in_name}.txt", "w")
+                # file_out = open(f"../data/original_output/dbscan{test_name}_{n_comps}dim_{w_o}weights_{in_name}.txt", "w")
                 # info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
                 # file_out.close()
 
                 for n_clus in [20, 40, 60, 80, 100, 120, 140, 160, 180, 200]:
                     # Clustering
                     # K-means
+                    print(f'MDS KMeans weights={w_o} n_clusters={n_clus} n_components = {n_comps}')
                     try:
                         k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
                         k_means.fit(X_transformed)
-                        print(f'MDS KMeans weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps}')
                         VC = show_communities_length(k_means.labels_)
 
                         file_out = open(f'../data/trash.txt', "w")
@@ -452,10 +468,11 @@ if do_mds:
                         _ = 1
 
                     # GMM
+                    print(f'MDS GMM weights={w_o} n_clusters={n_clus} n_components = {n_comps}')
                     try:
                         gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
                         gmm_c.fit(X_transformed)
-                        print(f'MDS GMM weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps} {"converged" if gmm_c.converged_ else "did not converge"}')
+                        print(f'{"converged" if gmm_c.converged_ else "did not converge"}')
                         VC = show_communities_length(gmm_c.predict(X_transformed))
 
                         file_out = open(f'../data/trash.txt', "w")
@@ -463,18 +480,22 @@ if do_mds:
                         file_out.close()
                     except:
                         _ = 1
-                    # # VBGMM
-                    # vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
-                    # vbgmm_c.fit(X_transformed)
-                    # print(f'MDS VBGMM weights={weights_mode[w_o]} n_clusters={n_clus} n_components = {n_comps} {"converged" if vbgmm_c.converged_ else "did not converge"}')
-                    # vbgmm_labels = vbgmm_c.predict(X_transformed)
-                    # VC = show_communities_length(vbgmm_labels)
+                    # VBGMM
+                    print(f'MDS VBGMM weights={w_o} n_clusters={n_clus} n_components = {n_comps}')
+                    try:
+                        vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
+                        vbgmm_c.fit(X_transformed)
+                        print(f'{"converged" if vbgmm_c.converged_ else "did not converge"}')
+                        vbgmm_labels = vbgmm_c.predict(X_transformed)
+                        VC = show_communities_length(vbgmm_labels)
 
-                    # file_out = open(f'../data/trash.txt', "w")
-                    # info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                    # file_out.close()
+                        file_out = open(f'../data/trash.txt', "w")
+                        info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                        file_out.close()
+                    except:
+                        _ = 1
 
-                    # # add the classified labels in order to compare
+                    # add the classified labels in order to compare
                     # vbgmm_d[w_o][n_comps] = vbgmm_labels
                 del X_transformed
 
@@ -539,7 +560,9 @@ elif opcao_grafo != 2:
     if function != 'agglomerative':
         model = ClusterRec(function=function, threshold=0, times=TIMES).fit(G)
         file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
-        labels = info(file_out, model.VC, index_to_journalname, lideres, lista_iniciais, G, adj_mat)
+        distance =  np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
+        np.fill_diagonal(distance, 0)
+        labels = info(file_out, model.VC, index_to_journalname, lideres, lista_iniciais, G, distance)
         del model
         file_out.close()
 
@@ -571,9 +594,11 @@ elif opcao_grafo != 2:
                 new_set.add(author)
             authors_sets.append(new_set)
 
-        p = adj_mat.shape[0] - 786 + 20
         if TIMES == 0:
             TIMES = np.inf
+        
+        distance =  np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
+        np.fill_diagonal(distance, 0)
         model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets, max_iter=TIMES, metrics_it=1, ground_truth=index_to_ground_truth, debug=True)
 
         # show best metrics
@@ -588,20 +613,22 @@ elif opcao_grafo != 2:
             print(f'Best {m_name}: {model.metrics_[it[m_ind], m_ind]} at iteration {it[m_ind]+1}')
         
         # plot dendogram
-        # min_d, max_d = np.min(model.distances_[-p:]), np.max(model.distances_[-p:])
-        # model.distances_[-p:] = (model.distances_[-p:] - min_d) / (max_d - min_d)
-        matplotlib.rcParams['lines.linewidth'] = 0.5
-        plt.title('Hierarchical Clustering Dendrogram')
-        # plot the top three levels of the dendrogram
-        model.plot_dendrogram(truncate_mode='lastp', p=p, distance_sort=True)
-        plt.xlabel("Number of points in node (or index of point if no parenthesis).")
-        plt.savefig(f'../data/dendogram{in_name}.png')
-
-        # save in a formatted file
-        # VC = show_communities_length(model.labels_)
-        # file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
-        # info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, adj_mat)
-        # file_out.close()
+        if TIMES == np.inf:
+            p = int(adj_mat.shape[0] - it[0])
+            min_d, max_d = np.min(model.distances_[-p:]), np.max(model.distances_[-p:])
+            model.distances_[-p:] = (model.distances_[-p:] - min_d) / (max_d - min_d)
+            matplotlib.rcParams['lines.linewidth'] = 0.05
+            plt.title(f'Hierarchical Clustering Dendrogram. p = {p} mode = {mode}')
+            # plot the top three levels of the dendrogram
+            model.plot_dendrogram(truncate_mode='lastp', p=p, distance_sort=True)
+            plt.xlabel("Number of points in node (or index of point if no parenthesis).")
+            plt.savefig(f'../data/dendogram{in_name}_p{p}_mode{mode}.pdf')
+        else:
+            # save in a formatted file
+            VC = show_communities_length(model.labels_)
+            file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
+            info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, distance)
+            file_out.close()
 
     print(50*'-')
     print(f'Fim {function}')

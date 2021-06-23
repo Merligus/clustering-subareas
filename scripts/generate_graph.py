@@ -26,18 +26,17 @@ def binarySearch(alist, item):
 # 2: bipartido
 opcao_grafo = 0
 
-mode = 'none'
-
 # Gerador no arquivo teste?
-if (len(sys.argv) < 3):
+if (len(sys.argv) < 4):
     print('Falta parametros')
     exit()
-elif (len(sys.argv) > 3):
+elif (len(sys.argv) > 4):
     print('Muitos parametros')
     exit()
 else:
     only_journals = bool(int(sys.argv[1]))
     cut = int(sys.argv[2])
+    mode = sys.argv[3]
 test = False
 test_name = ""
 year = 0

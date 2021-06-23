@@ -3,7 +3,8 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 
-from sklearn.manifold import MDS
+# from sklearn.manifold import MDS
+from ..algoritmos.smacof import MDS
 
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
@@ -54,10 +55,11 @@ for i, t in enumerate(zip(x, y)):
 weights_mode = {0: 'normal', 1: '1or0', 2: 'd-1', 3: 'd-2'}
 for w_o in [0, 1, 2, 3]:
     for n_comps in [2, 3, 4, 5, 6, 7]:
-        embedders = [MDS(n_components=n_comps, dissimilarity='precomputed', metric=True, random_state=RANDOM_STATE, weight_option=w_o)] # TSNE(n_components=n_comps, metric='precomputed', random_state=RANDOM_STATE)]
+        embedders = [MDS(ndim=n_comps, weight_option=weights_mode[w_o])] # TSNE(n_components=n_comps, metric='precomputed', random_state=RANDOM_STATE)]
         for embedding in embedders:
             # Embedding
-            X_transformed = embedding.fit_transform(distance) # shape = journals x n_components
+            mds_model = embedding.fit(distance) # shape = journals x n_components
+            X_transformed = mds_model['conf']
 
             for n_clus in [2, 4]:
                 # Clustering
@@ -70,19 +72,17 @@ for w_o in [0, 1, 2, 3]:
                 plt.savefig(f'{diretorio}plots\\banco_sintetico_plot_kmeans_c={n_clus}_w={weights_mode[w_o]}_d={n_comps}.png')
                 VC = show_communities_length(k_means.labels_)
                 print(k_means.labels_)
-                def ind_value(e):
-                    s = 0
-                    list_of_ind = e[0][:-1].split('.')
-                    while len(list_of_ind) < 5:
-                        list_of_ind.append('0')
-                    list_of_ind.reverse()
-                    for i, xi in enumerate(list_of_ind):
-                        s += float(xi)*1e4**(i)
-                    return s
+                # def ind_value(e):
+                #     s = 0
+                #     list_of_ind = e[0][:-1].split('.')
+                #     while len(list_of_ind) < 5:
+                #         list_of_ind.append('0')
+                #     list_of_ind.reverse()
+                #     for i, xi in enumerate(list_of_ind):
+                #         s += float(xi)*1e4**(i)
+                #     return s
+                # VC.sort(key=ind_value)
                 print(VC)
-                VC.sort(key=ind_value)
-                print(VC)
-                exit()
 
                 # GMM
                 gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)

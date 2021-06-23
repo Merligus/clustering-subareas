@@ -39,7 +39,6 @@ class Agglomerative:
         true_index = {}
         for index in ground_truth:
             true_index[index] = index
-        max_adj_mat = adj_mat.max()
         while i < n_samples - self.n_clusters and i < max_iter:
             # find the vertices of max similarity
             v1, v2 = np.unravel_index(np.argmax(adj_mat, axis=None), adj_mat.shape)
@@ -66,44 +65,48 @@ class Agglomerative:
                 print(f'children: {children[-1][0]} com {children[-1][1]}')
             nodes[v1] = n_samples + i
             i += 1
-            distances.append(max_adj_mat - adj_mat[v1, v2])
+            distances.append(adj_mat[v1, v2])
             if self.mode == 'union':
                 # update the similarity and the set of authors between the new vertice and all others
                 for v in range(n_samples):
-                    set_v = authors_sets[v]
-                    set_v1v2 = authors_sets[v1]
-                    # common authors between v and v1+v2
-                    common = len(set_v1v2.intersection(set_v))
-                    # update the similarity
-                    adj_mat[v1, v] = adj_mat[v, v1] = common/(len(set_v) + len(set_v1v2) - common)
+                    if adj_mat[v1, v] >= 0:
+                        set_v = authors_sets[v]
+                        set_v1v2 = authors_sets[v1]
+                        # common authors between v and v1+v2
+                        common = len(set_v1v2.intersection(set_v))
+                        # update the similarity
+                        adj_mat[v1, v] = adj_mat[v, v1] = common/(len(set_v) + len(set_v1v2) - common)
             elif self.mode == 'min':
                 # update the similarity and the set of authors between the new vertice and all others
                 for v in range(n_samples):
-                    set_v = authors_sets[v]
-                    set_v1v2 = authors_sets[v1]
-                    # common authors between v and v1+v2
-                    common = len(set_v1v2.intersection(set_v))
-                    # update the similarity
-                    adj_mat[v1, v] = adj_mat[v, v1] = common/min(len(set_v), len(set_v1v2))
+                    if adj_mat[v1, v] >= 0:
+                        set_v = authors_sets[v]
+                        set_v1v2 = authors_sets[v1]
+                        # common authors between v and v1+v2
+                        common = len(set_v1v2.intersection(set_v))
+                        # update the similarity
+                        adj_mat[v1, v] = adj_mat[v, v1] = common/min(len(set_v), len(set_v1v2))
             elif self.mode == 'mean':
                 # update the similarity and the set of authors between the new vertice and all others
                 for v in range(n_samples):
-                    set_v = authors_sets[v]
-                    set_v1v2 = authors_sets[v1]
-                    # common authors between v and v1+v2
-                    common = len(set_v1v2.intersection(set_v))
-                    # update the similarity
-                    denom = (len(set_v) + len(set_v1v2)) / 2
-                    adj_mat[v1, v] = adj_mat[v, v1] = common/denom
+                    if adj_mat[v1, v] >= 0:
+                        set_v = authors_sets[v]
+                        set_v1v2 = authors_sets[v1]
+                        # common authors between v and v1+v2
+                        common = len(set_v1v2.intersection(set_v))
+                        # update the similarity
+                        denom = (len(set_v) + len(set_v1v2)) / 2
+                        adj_mat[v1, v] = adj_mat[v, v1] = common/denom
             elif self.mode == 'none':
                 # update the similarity and the set of authors between the new vertice and all others
                 for v in range(n_samples):
-                    set_v = authors_sets[v]
-                    set_v1v2 = authors_sets[v1]
-                    # common authors between v and v1+v2
-                    common = len(set_v1v2.intersection(set_v))
-                    # update the similarity
-                    adj_mat[v1, v] = adj_mat[v, v1] = common
+                    if adj_mat[v1, v] >= 0:
+                        set_v = authors_sets[v]
+                        set_v1v2 = authors_sets[v1]
+                        # common authors between v and v1+v2
+                        common = len(set_v1v2.intersection(set_v))
+                        # update the similarity
+                        adj_mat[v1, v] = adj_mat[v, v1] = common
 
             # removing
             adj_mat[:, v2] = -np.inf
@@ -148,6 +151,7 @@ class Agglomerative:
                 c += 1
         self.children_ = np.array(children)
         self.distances_ = np.array(distances)
+        self.distances_ = np.max(self.distances_) - self.distances_
         self.metrics_ = np.array(metrics_l)
         return self
 
