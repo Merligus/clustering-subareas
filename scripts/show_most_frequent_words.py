@@ -34,10 +34,11 @@ bad_words = {'cambridge', 'cambridge', 'ca', 'california', 'jose', 'int', 'secon
              'september', 'november', 'december', 'journal'}
 
 for in_name in ['']:
-    for function in ['fastgreedy', 'leading_eigenvector', 'walktrap', 'multilevel']:
+    for function in ['reciprocal']:
         for rec in [2]:
             dir = "G:\\Mestrado\\BD\\data\\formatted_output\\"
-            file_name = f'{function}_union_rec{rec}{in_name}.txt'
+            # file_name = f'{function}_union_rec{rec}{in_name}.txt'
+            file_name = "gmm_reciprocal_union_d7_c100_weightsd-2.txt"
             f_out = open(f'{dir}most_frequent_words\\mfw_{file_name}', 'w')
 
             frequent = defaultdict(int)

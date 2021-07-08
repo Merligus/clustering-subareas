@@ -418,29 +418,29 @@ if do_mds:
            1: {2: 0.0048, 3: 0.0141, 4: 0.0291, 5: 0.0524, 6: 0.0736, 7: 0.0933, 32: 0.2382, 64: 0.2778, 128: 0.3033},
            2: {2: 0.00485, 3: 0.0139, 4: 0.028, 5: 0.0475, 6: 0.0676, 7: 0.0877, 32: 0.2382, 64: 0.2778, 128: 0.3033},
            3: {2: 0.00404, 3: 0.0134, 4: 0.0301, 5: 0.0454, 6: 0.0685, 7: 0.089, 32: 0.2382, 64: 0.2778, 128: 0.3033}}
-    vbgmm_d = {}
-    for w_o in ['1or0', 'normal', 'd-1', 'd-2']:
-        vbgmm_d[w_o] = {}
-        for n_comps in [2, 3, 4, 5, 6, 7, 32, 64, 128, 512, 2048, 4096]:
-            # embedders = [MDS(n_components=n_comps, dissimilarity='precomputed', metric=True, random_state=RANDOM_STATE, weight_option=w_o)] # TSNE(n_components=n_comps, metric='precomputed', random_state=RANDOM_STATE)]
-            embedders = [MDS(ndim=n_comps, weight_option=w_o)]
+    for w_o in ['d-2']:
+        for n_comps in [n_components]:
+            embedders = [MDS(ndim=n_comps, weight_option=w_o, itmax=10000)]
             for embedding in embedders:
                 # Embedding
                 filename = f"../data/distance_embedded/X_transformed_{n_comps}dim_{w_o}weight_{function}function_{nan_sub}nan.npy"
-                if os.path.exists(filename) and False:
+                print(f'Calculando X transormed para {n_comps} dimensoes')
+                if os.path.exists(filename):
                     with open(filename, "rb") as f:
                         X_transformed = np.load(f)
                 else:
                     try:
                         mds_model = embedding.fit(distance) # shape = journals x n_components
                         X_transformed = mds_model['conf']
-                        del mds_model
                         with open(filename, "wb") as f:
                             np.save(f, X_transformed)
                         print(f'Stress = {mds_model["stress"]} com {n_comps} componentes')
+                        del mds_model
                     except:
                         X_transformed = 0
+                        print(f'nao deu pra {n_comps} dimensoes')
                         continue
+                print(f'X transormed para {n_comps} dimensoes calculado')
 
                 # DBSCAN
                 # dbscan_c = DBSCAN(eps=eps[w_o][n_comps])
@@ -454,6 +454,21 @@ if do_mds:
 
                 for n_clus in [20, 40, 60, 80, 100, 120, 140, 160, 180, 200]:
                     # Clustering
+                    # GMM
+                    print(f'MDS GMM weights={w_o} n_clusters={n_clus} n_components = {n_comps}')
+                    try:
+                        gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
+                        gmm_c.fit(X_transformed)
+                        print(f'{"converged" if gmm_c.converged_ else "did not converge"} with {gmm_c.n_iter_} iterations')
+                        VC = show_communities_length(gmm_c.predict(X_transformed))
+
+                        # file_out = open(f'../data/gmm_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.txt', "w")
+                        file_out = open(f'../data/trash.txt', "w")
+                        info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                        file_out.close()
+                    except:
+                        _ = 1
+                        
                     # K-means
                     print(f'MDS KMeans weights={w_o} n_clusters={n_clus} n_components = {n_comps}')
                     try:
@@ -467,25 +482,15 @@ if do_mds:
                     except:
                         _ = 1
 
-                    # GMM
-                    print(f'MDS GMM weights={w_o} n_clusters={n_clus} n_components = {n_comps}')
-                    try:
-                        gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
-                        gmm_c.fit(X_transformed)
-                        print(f'{"converged" if gmm_c.converged_ else "did not converge"}')
-                        VC = show_communities_length(gmm_c.predict(X_transformed))
+                    # plt.scatter(np.clip(X_transformed[:, 0], -3, 0.5), np.clip(X_transformed[:, 1], -1, 8), c=k_means.labels_, s=0.4)
+                    # plt.savefig(f'../data/kmeans_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.pdf')
 
-                        file_out = open(f'../data/trash.txt', "w")
-                        info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                        file_out.close()
-                    except:
-                        _ = 1
                     # VBGMM
                     print(f'MDS VBGMM weights={w_o} n_clusters={n_clus} n_components = {n_comps}')
                     try:
                         vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
                         vbgmm_c.fit(X_transformed)
-                        print(f'{"converged" if vbgmm_c.converged_ else "did not converge"}')
+                        print(f'{"converged" if vbgmm_c.converged_ else "did not converge"} with {vbgmm_c.n_iter_} iterations')
                         vbgmm_labels = vbgmm_c.predict(X_transformed)
                         VC = show_communities_length(vbgmm_labels)
 
@@ -494,67 +499,7 @@ if do_mds:
                         file_out.close()
                     except:
                         _ = 1
-
-                    # add the classified labels in order to compare
-                    # vbgmm_d[w_o][n_comps] = vbgmm_labels
                 del X_transformed
-
-    # comparing the results
-    # for w_o1 in vbgmm_d:
-    #     for n_comps1 in vbgmm_d[w_o1]:
-    #         for w_o2 in vbgmm_d:
-    #             for n_comps2 in vbgmm_d[w_o2]:
-    #                 if len(vbgmm_d[w_o1][n_comps1]) == len(vbgmm_d[w_o2][n_comps2]) and (w_o1 != w_o2 or n_comps1 != n_comps2):
-    #                     print(50*'*')
-    #                     print(f'{weights_mode[w_o1]}weights {n_comps1}dim vs {weights_mode[w_o2]}weights {n_comps2}dim')
-    #                     print(50*'*')
-    #                     print(f'Adjusted Rand index: {metrics.adjusted_rand_score(vbgmm_d[w_o1][n_comps1], vbgmm_d[w_o2][n_comps2]):.2f}')
-    #                     print(f'Adjusted Mutual Information: {metrics.adjusted_mutual_info_score(vbgmm_d[w_o1][n_comps1], vbgmm_d[w_o2][n_comps2]):.2f}')
-    #                     print(f'Homogeneity: {metrics.homogeneity_score(vbgmm_d[w_o1][n_comps1], vbgmm_d[w_o2][n_comps2]):.2%}')
-    #                     print(f'Completeness: {metrics.completeness_score(vbgmm_d[w_o1][n_comps1], vbgmm_d[w_o2][n_comps2]):.2%}')
-    #                     print(f'V-measure: {metrics.v_measure_score(vbgmm_d[w_o1][n_comps1], vbgmm_d[w_o2][n_comps2]):.2%}')
-    #                     print(f'Fowlkes-Mallows: {metrics.fowlkes_mallows_score(vbgmm_d[w_o1][n_comps1], vbgmm_d[w_o2][n_comps2]):.2%}')
-    #                     print(50*'*')
-    #         vbgmm_d[w_o1][n_comps1] = []
-                
-    # Testing AgglomerativeClustering
-    # for n_clus in [300, 500]:
-    #     for link in ['average']:
-    #         clustering_agglomerative = AgglomerativeClustering(affinity='precomputed',
-    #                                                            linkage=link,
-    #                                                            # compute_full_tree=True,
-    #                                                            n_clusters=n_clus,
-    #                                                            # distance_threshold=10**(-e_threshold)
-    #                                                            ).fit(distance)
-    #         print(f'n_cluster = {n_clus}, link = {link}')
-    #         d = {}
-    #         for label in clustering_agglomerative.labels_:
-    #             if label in d:
-    #                 d[label] += 1
-    #             else:
-    #                 d[label] = 1
-    #         print(d)
-    #         # print([len(list(group)) for key, group in groupby(clustering_agglomerative.labels_)])
-    #         print(clustering_agglomerative.labels_)
-    #         file_out = open(f"../data/agglomerative_link_{link}_n_clusters_{n_clus}.txt", "w")
-    #         for label in set(clustering_agglomerative.labels_):
-    #             file_out.write(f'{label}\n')
-    #             for journal, comm_id in enumerate(clustering_agglomerative.labels_):
-    #                 if comm_id == label:
-    #                     file_out.write(f'\t{comm_id}:{G.vs[journal]["journalname"]}\n')
-    #         file_out.close()
-
-    # clustering_affinity = AffinityPropagation(affinity='precomputed', convergence_iter=100, random_state=RANDOM_STATE).fit(distance)
-    # print(clustering_affinity.labels_)
-
-    # clustering_spectral_clustering = SpectralClustering(affinity='precomputed', random_state=RANDOM_STATE).fit(distance)
-    # print(clustering_spectral_clustering.labels_)
-
-    # clustering_DBSCAN = DBSCAN(metric='precomputed').fit(distance)
-    # print(clustering_DBSCAN.labels_)
-
-    # clustering_OPTICS = OPTICS(metric='precomputed').fit(distance)
-    # print(clustering_OPTICS.labels_)
 
 elif opcao_grafo != 2:
     if function != 'agglomerative':
@@ -594,17 +539,18 @@ elif opcao_grafo != 2:
                 new_set.add(author)
             authors_sets.append(new_set)
 
+        model_cr = ClusterRec(function="multilevel", threshold=0, times=TIMES).fit(G)
         if TIMES == 0:
             TIMES = np.inf
         
         distance =  np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
         np.fill_diagonal(distance, 0)
-        model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets, max_iter=TIMES, metrics_it=1, ground_truth=index_to_ground_truth, debug=True)
+        model = Agglomerative(mode=mode, n_clusters=len(model_cr.VC)).fit(adj_mat=adj_mat, authors_sets=authors_sets, metrics_it=1, ground_truth=index_to_ground_truth, debug=False)
 
         # show best metrics
         it = np.argmax(model.metrics_, axis=0)
-        best_metrics = ["Adjusted Rand Score", 
-                        "Adjusted Mutual Information",
+        best_metrics = ["Rand Score", 
+                        "Mutual Information",
                         "Homogeneity",
                         "Completeness",
                         "V-measure",
@@ -626,9 +572,36 @@ elif opcao_grafo != 2:
         else:
             # save in a formatted file
             VC = show_communities_length(model.labels_)
-            file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
-            info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, distance)
-            file_out.close()
+            labels_agg = [0]*adj_mat.shape[0]
+            for comm_ind, tuple in enumerate(VC):
+                ind, comm = tuple[0], tuple[1]
+                for v in comm:
+                    labels_agg[v] = comm_ind
+
+            labels_cr = [0]*adj_mat.shape[0]
+            for comm_ind, tuple in enumerate(model_cr.VC):
+                ind, comm = tuple[0], tuple[1]
+                for v in comm:
+                    labels_cr[v] = comm_ind
+
+            print(f'CR={len(model_cr.VC)} Agglomerative={len(VC)}')
+            ARS = metrics.rand_score(labels_cr, labels_agg)
+            AMIS = metrics.normalized_mutual_info_score(labels_cr, labels_agg)
+            HS = metrics.homogeneity_score(labels_cr, labels_agg)
+            CS = metrics.completeness_score(labels_cr, labels_agg)
+            VMS = metrics.v_measure_score(labels_cr, labels_agg)
+            FMS = metrics.fowlkes_mallows_score(labels_cr, labels_agg)
+            print(50*'*')
+            print(f'Rand index: {ARS:.2f}')
+            print(f'Normalized Mutual Information: {AMIS:.2f}')
+            print(f'Homogeneity: {HS:.2%}')
+            print(f'Completeness: {CS:.2%}')
+            print(f'V-measure: {VMS:.2%}')
+            print(f'Fowlkes-Mallows: {FMS:.2%}')
+            print(50*'*')
+            # file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
+            # info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, distance)
+            # file_out.close()
 
     print(50*'-')
     print(f'Fim {function}')

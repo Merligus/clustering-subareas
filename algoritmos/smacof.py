@@ -116,6 +116,7 @@ class MDS:
         n = (diss.shape[0]*diss.shape[1] - diss.shape[0])/2.
         N = n*m
         s = np.nansum(wghts*np.power(diss, 2))/2.
+        # dissnorm = np.divide(diss, np.sqrt(s)*np.sqrt(N))
         dissnorm = diss/np.sqrt(s)*np.sqrt(N)
         return dissnorm
     
@@ -134,15 +135,15 @@ class MDS:
         r = np.sum(b, axis=1)
         return np.diag(r)-b
 
-    def weightedMean(self, y, sumwvec, target, w, iord, ties, n, nties):
+    def weightedMean(self, y, sumwvec, target, target_ind, w, w_ind, iord, ties, n, nties):
         nprevties = 0
         for k in range(nties):
             sumwt = 0.
             sumw = 0.
             for l in range(ties[k]):
                 ind = iord[nprevties + l]
-                sumwt += w[ind]*target[ind]
-                sumw += w[ind]
+                sumwt += w[w_ind[0][ind], w_ind[1][ind]]*target[target_ind[0][ind], target_ind[1][ind]]
+                sumw += w[w_ind][ind]
             if sumw > 1e-10:
                 y[k] = sumwt / sumw
             else:
@@ -201,7 +202,7 @@ class MDS:
 
         Target_indices = np.triu_indices_from(Target, k=1)
         w_indices = np.triu_indices_from(w, k=1)
-        self.weightedMean(y, w2, Target[Target_indices], w[w_indices], x['iord'], x['ties'], n, nties_act)
+        self.weightedMean(y, w2, Target, Target_indices, w, w_indices, x['iord'], x['ties'], n, nties_act)
         
         if n > x['n_nonmis'] and x['missing'] in {"single", "multiple"}:
             Result[x['iord_mis']] = y[x['nties_nonmis']: len(x['ties'])]
@@ -316,7 +317,13 @@ class MDS:
         v = self.myGenInv(w)
         itel = 1
         combinations = np.indices((x.shape[0], x.shape[0]))
-        d = np.sqrt(np.sum(np.square(x[combinations[0], :] - x[combinations[1], :]), axis=2))
+        d = np.zeros((x.shape[0], x.shape[0]))
+        for i in range(x.shape[0]):
+            for j in range(i+1, x.shape[0]):
+                d[i, j] = np.sqrt(np.sum(np.square(x[i,:] - x[j,:])))
+                d[j, i] = d[i, j]
+        # d = np.sqrt(np.sum(np.square(x[combinations[0], :] - x[combinations[1], :]), axis=2))
+        # lb = np.divide(np.nansum(wgths*d*dhat), np.nansum(wgths*np.square(d)))
         lb = np.nansum(wgths*d*dhat)/np.nansum(wgths*np.square(d))
         x = lb*x
         d = lb*d
@@ -329,8 +336,13 @@ class MDS:
             y = np.dot(v, np.dot(b, x))
             y = x + self.relax*(y-x)
             combinations = np.indices((y.shape[0], y.shape[0]))
-            e = np.sqrt(np.sum(np.square(y[combinations[0], :] - y[combinations[1], :]), axis=2))
-
+            e = np.zeros((x.shape[0], x.shape[0]))
+            for i in range(y.shape[0]):
+                for j in range(i+1, y.shape[0]):
+                    e[i, j] = np.sqrt(np.sum(np.square(y[i,:] - y[j,:])))
+                    e[j, i] = e[i, j]
+            # e = np.sqrt(np.sum(np.square(y[combinations[0], :] - y[combinations[1], :]), axis=2))
+            
             dhat2 = self.transform(e, disobj, w=wgths, normq=nn)
             wgths_indices = np.triu_indices_from(wgths, k=1)
             e_indices = np.triu_indices_from(e, k=1)
@@ -386,7 +398,16 @@ class MDS:
 #         array.append(line)
 #     idiss = np.array(array)
 
+# # idiss = np.ones((6480, 6480))
 # idiss[0, 1] = idiss[1, 0] = np.nan
 # idiss[3, 2] = idiss[2, 3] = np.nan
-# model = MDS(type = "interval").fit(idiss)
+# model = MDS(type = "interval", verbose=True).fit(idiss)
 # print(model['conf'])
+# [[ 0.70485799 -0.24628322]
+#  [ 0.49016144 -0.35819016]
+#  [ 0.00525712 -0.58601052]
+#  [-0.58801328 -0.20534594]
+#  [-0.77183538 -0.10066397]
+#  [-0.3669543   0.27672676]
+#  [-0.01199711  0.76243705]
+#  [ 0.53852353  0.45733001]]

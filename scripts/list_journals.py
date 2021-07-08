@@ -7,7 +7,7 @@ for w_o in ['normal', '1or0', 'd-1', 'd-2']:
         for n_clus in [20, 40]:
             comb.append((w_o, n_comps, n_clus))
 
-for in_name in ['cut100', 'only_journals']:
+for in_name in ['']:
     print('ABRINDO ARQUIVO')
     with open(f'../data/journals_dict_{in_name}.pickle', 'rb') as handle:
         journals = pickle.load(handle)

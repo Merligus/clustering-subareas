@@ -174,8 +174,8 @@ else:
                 if common != 0:
                     if mode == 'union':
                         adj_mat[v1, v2] = common/(list_of_authors[v1].__len__() + list_of_authors[v2].__len__() - common)
-                    elif mode == 'min':
-                        adj_mat[v1, v2] = common/min(list_of_authors[v1].__len__(), list_of_authors[v2].__len__())
+                    elif mode == 'max':
+                        adj_mat[v1, v2] = common/max(list_of_authors[v1].__len__(), list_of_authors[v2].__len__())
                     elif mode == 'mean':
                         denom = (list_of_authors[v1].__len__() + list_of_authors[v2].__len__()) / 2
                         adj_mat[v1, v2] = common/denom

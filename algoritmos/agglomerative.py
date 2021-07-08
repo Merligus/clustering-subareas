@@ -76,7 +76,7 @@ class Agglomerative:
                         common = len(set_v1v2.intersection(set_v))
                         # update the similarity
                         adj_mat[v1, v] = adj_mat[v, v1] = common/(len(set_v) + len(set_v1v2) - common)
-            elif self.mode == 'min':
+            elif self.mode == 'max':
                 # update the similarity and the set of authors between the new vertice and all others
                 for v in range(n_samples):
                     if adj_mat[v1, v] >= 0:
@@ -85,7 +85,7 @@ class Agglomerative:
                         # common authors between v and v1+v2
                         common = len(set_v1v2.intersection(set_v))
                         # update the similarity
-                        adj_mat[v1, v] = adj_mat[v, v1] = common/min(len(set_v), len(set_v1v2))
+                        adj_mat[v1, v] = adj_mat[v, v1] = common/max(len(set_v), len(set_v1v2))
             elif self.mode == 'mean':
                 # update the similarity and the set of authors between the new vertice and all others
                 for v in range(n_samples):
@@ -124,8 +124,8 @@ class Agglomerative:
                         labels_pred.append(true_index[vid])
                     else:
                         raise TypeError(f'vid:{vid} should be in labels_sets[{true_index[vid]}] but it is not.')
-                ARS = metrics.adjusted_rand_score(labels_true, labels_pred)
-                AMIS = metrics.adjusted_mutual_info_score(labels_true, labels_pred)
+                ARS = metrics.rand_score(labels_true, labels_pred)
+                AMIS = metrics.normalized_mutual_info_score(labels_true, labels_pred)
                 HS = metrics.homogeneity_score(labels_true, labels_pred)
                 CS = metrics.completeness_score(labels_true, labels_pred)
                 VMS = metrics.v_measure_score(labels_true, labels_pred)
@@ -133,8 +133,8 @@ class Agglomerative:
                 if debug:
                     print(50*'*')
                     print(f'Iteration {i}')
-                    print(f'Adjusted Rand index: {ARS:.2f}')
-                    print(f'Adjusted Mutual Information: {AMIS:.2f}')
+                    print(f'Rand index: {ARS:.2f}')
+                    print(f'Normalized Mutual Information: {AMIS:.2f}')
                     print(f'Homogeneity: {HS:.2%}')
                     print(f'Completeness: {CS:.2%}')
                     print(f'V-measure: {VMS:.2%}')

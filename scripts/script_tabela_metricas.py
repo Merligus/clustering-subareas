@@ -1,8 +1,9 @@
 for in_name in [""]:
-    for function in ["multilevel"]:
-        for rec in [3]:
+    for function in ["reciprocal"]:
+        for nan in [0]:
             for mode in ["union"]:
-                arq_path = f'G:\Mestrado\BD\data\outputs\saida_{function}_0_{mode}_{rec}_d=2{in_name}.out'
+                arq_path = f'G:\Mestrado\BD\data\outputs\\reciprocal_nan0_d8a10.out'
+                # arq_path = f'G:\Mestrado\BD\data\outputs\saida_{function}_0_{mode}_{rec}_d=2{in_name}.out'
                 with open(arq_path, 'r') as f:
                     for line in f:
                         if line[0:3] == 'MDS':
@@ -29,7 +30,11 @@ for in_name in [""]:
                             table_line = table_line.replace('%', '\%')
                             table_line = table_line.replace('_', '\_')
                             print(table_line + '\n' + '\hline')
+                            
                         # elif 'Silhouette: ' in line:
                         #     length = len('Silhouette: ')
                         #     table_line += line[length:-1] + ' \\\\'
+
+                        #     table_line = table_line.replace('%', '\%')
+                        #     table_line = table_line.replace('_', '\_')
                         #     print(table_line + '\n' + '\hline')
