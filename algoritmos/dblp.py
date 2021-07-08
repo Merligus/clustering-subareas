@@ -4,7 +4,6 @@ from igraph import *
 from nltk.featstruct import _default_fs_class
 import numpy as np
 import random
-import xml.etree.ElementTree as ET
 import pickle
 import sys
 import os
@@ -539,13 +538,18 @@ elif opcao_grafo != 2:
                 new_set.add(author)
             authors_sets.append(new_set)
 
-        model_cr = ClusterRec(function="multilevel", threshold=0, times=TIMES).fit(G)
         if TIMES == 0:
             TIMES = np.inf
         
         distance =  np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
         np.fill_diagonal(distance, 0)
-        model = Agglomerative(mode=mode, n_clusters=len(model_cr.VC)).fit(adj_mat=adj_mat, authors_sets=authors_sets, metrics_it=1, ground_truth=index_to_ground_truth, debug=False)
+        model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets, metrics_it=1, max_iter=TIMES, ground_truth=index_to_ground_truth, debug=True)
+        with open('../data/children_agglomerative_' + mode + '.npy', 'wb') as f:
+            np.save(f, model.children_)
+        
+        with open('../data/index_to_journalname' + test_name +'.pickle', 'wb') as handle:
+            pickle.dump(index_to_journalname, handle, protocol=2)
+
 
         # show best metrics
         it = np.argmax(model.metrics_, axis=0)
@@ -578,30 +582,9 @@ elif opcao_grafo != 2:
                 for v in comm:
                     labels_agg[v] = comm_ind
 
-            labels_cr = [0]*adj_mat.shape[0]
-            for comm_ind, tuple in enumerate(model_cr.VC):
-                ind, comm = tuple[0], tuple[1]
-                for v in comm:
-                    labels_cr[v] = comm_ind
-
-            print(f'CR={len(model_cr.VC)} Agglomerative={len(VC)}')
-            ARS = metrics.rand_score(labels_cr, labels_agg)
-            AMIS = metrics.normalized_mutual_info_score(labels_cr, labels_agg)
-            HS = metrics.homogeneity_score(labels_cr, labels_agg)
-            CS = metrics.completeness_score(labels_cr, labels_agg)
-            VMS = metrics.v_measure_score(labels_cr, labels_agg)
-            FMS = metrics.fowlkes_mallows_score(labels_cr, labels_agg)
-            print(50*'*')
-            print(f'Rand index: {ARS:.2f}')
-            print(f'Normalized Mutual Information: {AMIS:.2f}')
-            print(f'Homogeneity: {HS:.2%}')
-            print(f'Completeness: {CS:.2%}')
-            print(f'V-measure: {VMS:.2%}')
-            print(f'Fowlkes-Mallows: {FMS:.2%}')
-            print(50*'*')
-            # file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
-            # info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, distance)
-            # file_out.close()
+            file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
+            info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, distance)
+            file_out.close()
 
     print(50*'-')
     print(f'Fim {function}')
