@@ -78,7 +78,8 @@ class ClusterFinder:
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', action='store', dest='mode', type=str, default='union')
-parser.add_argument('-i', action='store', dest='in_name', type=str, default='')
+parser.add_argument('-i', action='store', dest='in_name', type=str, default='-')
+parser.add_argument('-d', action='store', dest='dir', type=str, default='../data')
 
 parsed = parser.parse_args()
 if parsed.in_name != '-':
@@ -88,22 +89,23 @@ else:
 print(25*'*', 'ARGS', 25*'*')
 print(f'Mode: {parsed.mode}')
 print(f'In name: {parsed.in_name}')
+print(f'Directory: {parsed.dir}')
 
-filename = "../data/graph_nao_direcionado" + parsed.mode + parsed.in_name + '.npy'
+filename = f"{parsed.dir}/graph_nao_direcionado" + parsed.mode + parsed.in_name + '.npy'
 with open(filename, "rb") as f:
     adj_mat = np.load(f)
 
-filename = "../data/children_agglomerative_" + parsed.mode + '.npy'
+filename = f"{parsed.dir}/children_agglomerative_" + parsed.mode + '.npy'
 with open(filename, "rb") as f:
     children = np.load(f)
 
-with open('../data/index_to_journalname.pickle', 'rb') as handle:
+with open(f'{parsed.dir}/index_to_journalname.pickle', 'rb') as handle:
     index_to_journalname = pickle.load(handle)
 
-with open('../data/index_to_journal_complete_name.pickle', 'rb') as handle:
+with open(f'{parsed.dir}/index_to_journal_complete_name.pickle', 'rb') as handle:
     index_to_journal_complete_name = pickle.load(handle)
 
-with open(f'../data/journals_dict{parsed.in_name}.pickle', 'rb') as handle:
+with open(f'{parsed.dir}/journals_dict{parsed.in_name}.pickle', 'rb') as handle:
     journals = pickle.load(handle)
 
 # index_to_journal_complete_name = {}
@@ -117,7 +119,7 @@ with open(f'../data/journals_dict{parsed.in_name}.pickle', 'rb') as handle:
 #     elif 'journal_name_rough' in journals[journal]:
 #         index_to_journal_complete_name[v] = journal + ': ' + journals[journal]['journal_name_rough']
 
-# with open('../data/index_to_journal_complete_name.pickle', 'wb') as handle:
+# with open(f'{parsed.dir}/index_to_journal_complete_name.pickle', 'wb') as handle:
 #     pickle.dump(index_to_journal_complete_name, handle, protocol=2)
 
 while True:

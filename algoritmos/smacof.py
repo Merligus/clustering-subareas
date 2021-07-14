@@ -317,12 +317,12 @@ class MDS:
         v = self.myGenInv(w)
         itel = 1
         combinations = np.indices((x.shape[0], x.shape[0]))
-        d = np.zeros((x.shape[0], x.shape[0]))
-        for i in range(x.shape[0]):
-            for j in range(i+1, x.shape[0]):
-                d[i, j] = np.sqrt(np.sum(np.square(x[i,:] - x[j,:])))
-                d[j, i] = d[i, j]
-        # d = np.sqrt(np.sum(np.square(x[combinations[0], :] - x[combinations[1], :]), axis=2))
+        # d = np.zeros((x.shape[0], x.shape[0]))
+        # for i in range(x.shape[0]):
+        #     for j in range(i+1, x.shape[0]):
+        #         d[i, j] = np.sqrt(np.sum(np.square(x[i,:] - x[j,:])))
+        #         d[j, i] = d[i, j]
+        d = np.sqrt(np.sum(np.square(x[combinations[0], :] - x[combinations[1], :]), axis=2))
         # lb = np.divide(np.nansum(wgths*d*dhat), np.nansum(wgths*np.square(d)))
         lb = np.nansum(wgths*d*dhat)/np.nansum(wgths*np.square(d))
         x = lb*x
@@ -336,12 +336,12 @@ class MDS:
             y = np.dot(v, np.dot(b, x))
             y = x + self.relax*(y-x)
             combinations = np.indices((y.shape[0], y.shape[0]))
-            e = np.zeros((x.shape[0], x.shape[0]))
-            for i in range(y.shape[0]):
-                for j in range(i+1, y.shape[0]):
-                    e[i, j] = np.sqrt(np.sum(np.square(y[i,:] - y[j,:])))
-                    e[j, i] = e[i, j]
-            # e = np.sqrt(np.sum(np.square(y[combinations[0], :] - y[combinations[1], :]), axis=2))
+            # e = np.zeros((x.shape[0], x.shape[0]))
+            # for i in range(y.shape[0]):
+            #     for j in range(i+1, y.shape[0]):
+            #         e[i, j] = np.sqrt(np.sum(np.square(y[i,:] - y[j,:])))
+            #         e[j, i] = e[i, j]
+            e = np.sqrt(np.sum(np.square(y[combinations[0], :] - y[combinations[1], :]), axis=2))
             
             dhat2 = self.transform(e, disobj, w=wgths, normq=nn)
             wgths_indices = np.triu_indices_from(wgths, k=1)

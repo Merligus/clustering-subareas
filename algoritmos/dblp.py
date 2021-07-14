@@ -553,8 +553,8 @@ elif opcao_grafo != 2:
 
         # show best metrics
         it = np.argmax(model.metrics_, axis=0)
-        best_metrics = ["Rand Score", 
-                        "Mutual Information",
+        best_metrics = ["Adjusted Rand Score", 
+                        "Normalized Mutual Information",
                         "Homogeneity",
                         "Completeness",
                         "V-measure",

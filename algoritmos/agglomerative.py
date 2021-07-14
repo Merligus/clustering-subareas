@@ -124,7 +124,7 @@ class Agglomerative:
                         labels_pred.append(true_index[vid])
                     else:
                         raise TypeError(f'vid:{vid} should be in labels_sets[{true_index[vid]}] but it is not.')
-                ARS = metrics.rand_score(labels_true, labels_pred)
+                ARS = metrics.adjusted_rand_score(labels_true, labels_pred)
                 AMIS = metrics.normalized_mutual_info_score(labels_true, labels_pred)
                 HS = metrics.homogeneity_score(labels_true, labels_pred)
                 CS = metrics.completeness_score(labels_true, labels_pred)
@@ -133,7 +133,7 @@ class Agglomerative:
                 if debug:
                     print(50*'*')
                     print(f'Iteration {i}')
-                    print(f'Rand index: {ARS:.2f}')
+                    print(f'Adjusted Rand index: {ARS:.2f}')
                     print(f'Normalized Mutual Information: {AMIS:.2f}')
                     print(f'Homogeneity: {HS:.2%}')
                     print(f'Completeness: {CS:.2%}')
