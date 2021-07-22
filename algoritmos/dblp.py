@@ -145,13 +145,10 @@ cut_p = True
 
 # Gerador no arquivo teste?
 test = False
-year = 0
 
 test_name = '_' + mode
 if test:
     test_name += "_test"
-if year > 0:
-    test_name += '_' + str(year)
 if log_transf:
     test_name += '_' + 'log'
 if n_components <= 1:
@@ -395,7 +392,9 @@ for vid in range(V):
     else:
         G.vs[vid]["initial"] = -1
         G.vs[vid]["fixed"] = False
-print(50*'*')
+print(50*'*')        
+with open('../data/index_to_journalname' + in_name + '.pickle', 'wb') as handle:
+    pickle.dump(index_to_journalname, handle, protocol=2)
 
 if do_mds:
     # Generating 
@@ -553,9 +552,6 @@ elif opcao_grafo != 2:
         # para o finder.py
         # with open('../data/children_agglomerative_' + mode + '.npy', 'wb') as f:
         #     np.save(f, model.children_)
-        
-        # with open('../data/index_to_journalname' + test_name +'.pickle', 'wb') as handle:
-        #     pickle.dump(index_to_journalname, handle, protocol=2)
 
         # show best metrics
         it = np.argmax(model.metrics_, axis=0)

@@ -1,5 +1,7 @@
 import argparse
-import igraph as ig
+import matplotlib.pyplot as plt
+import networkx as nx
+from smacof import MDS
 import numpy as np
 import pickle
 from collections import defaultdict
@@ -130,7 +132,7 @@ with open(filename, "rb") as f:
     adj_mat = np.load(f)
 distance = np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
 
-filename = f"{parsed.dir}/children_{parsed.function}_" + parsed.mode
+filename = f"{parsed.dir}/children_{parsed.function}_" + parsed.mode + parsed.in_name
 if parsed.function == 'agglomerative': # load em python
     with open(filename + '.npy', "rb") as f:
         children = np.load(f)
@@ -140,31 +142,35 @@ elif parsed.function == 'multilevel':
 else:
     raise KeyError(f'Função não disponível.')
 
-with open(f'{parsed.dir}/index_to_journalname.pickle', 'rb') as handle:
+with open(f'{parsed.dir}/index_to_journalname_{parsed.mode}{parsed.in_name}.pickle', 'rb') as handle:
     index_to_journalname = pickle.load(handle)
-
-with open(f'{parsed.dir}/index_to_journal_complete_name.pickle', 'rb') as handle:
-    index_to_journal_complete_name = pickle.load(handle)
 
 with open(f'{parsed.dir}/journals_dict{parsed.in_name}.pickle', 'rb') as handle:
     journals = pickle.load(handle)
 
-# index_to_journal_complete_name = {}
-# for v in index_to_journalname:
-#     journal = index_to_journalname[v]
-#     if journal not in journals:
-#         print(journal)
-#         continue
-#     if len(journals[journal]['journal_name']) > 0:
-#         index_to_journal_complete_name[v] = journal + ': ' + journals[journal]['journal_name']
-#     elif 'journal_name_rough' in journals[journal]:
-#         index_to_journal_complete_name[v] = journal + ': ' + journals[journal]['journal_name_rough']
-#     else:
-#         index_to_journal_complete_name[v] = journal + ': ' + journal.upper()
+index_to_journal_complete_name = {}
+for v in index_to_journalname:
+    journal = index_to_journalname[v]
+    if journal not in journals:
+        print(journal)
+        continue
+    if len(journals[journal]['journal_name']) > 0:
+        index_to_journal_complete_name[v] = journal + ': ' + journals[journal]['journal_name']
+    elif 'journal_name_rough' in journals[journal]:
+        index_to_journal_complete_name[v] = journal + ': ' + journals[journal]['journal_name_rough']
+    else:
+        index_to_journal_complete_name[v] = journal + ': ' + journal.upper()
 
-# with open(f'{parsed.dir}/index_to_journal_complete_name.pickle', 'wb') as handle:
-#     pickle.dump(index_to_journal_complete_name, handle, protocol=2)
+with open(f'{parsed.dir}/index_to_journal_complete_name{parsed.in_name}.pickle', 'wb') as handle:
+    pickle.dump(index_to_journal_complete_name, handle, protocol=2)
 
+with open(f'{parsed.dir}/index_to_journal_complete_name{parsed.in_name}.pickle', 'rb') as handle:
+    index_to_journal_complete_name = pickle.load(handle)
+
+with open(f'{parsed.dir}/nauthors{parsed.in_name}.pickle', 'rb') as handle:
+    nauthors = pickle.load(handle)
+
+graph_n = 1
 while True:
     print(25*'*', 'NOVA PROCURA', 25*'*')
     print("Siglas conferências:")
@@ -232,35 +238,57 @@ while True:
             cf.show_top(sentences, n=10)
         # plota o cluster em forma de grafo
         elif entrada[0] == '4':
-            g = ig.Graph()
-            g.add_vertices(len(cluster))
-            edges = []
-            weights = []
+            g = nx.Graph()
 
             vertices = []
             for vi in cluster:
                 vertices.append(vi)
+            
+            distance_temp = np.zeros((len(cluster), len(cluster)))
+            m = MDS(ndim=2, weight_option="d-2", itmax=10000)
 
-            journalname = []
+            journalname = {}
+            node_size = []
             v1 = 0
             while v1 < len(cluster):
                 v2 = v1 + 1
                 while v2 < len(cluster):
                     if distance[vertices[v1], vertices[v2]] > 0 and distance[vertices[v1], vertices[v2]] < np.inf:
-                        edges.append((v1, v2))
-                        weights.append(distance[vertices[v1], vertices[v2]])
+                        g.add_edge(v1, v2, weight=distance[vertices[v1], vertices[v2]])
+                        distance_temp[v1, v2] = distance_temp[v2, v1] = distance[vertices[v1], vertices[v2]]
                     v2 += 1
-                journalname.append(index_to_journalname[vertices[v1]])
+                journalname[v1] = index_to_journalname[vertices[v1]]
+                node_size.append(4*np.ceil(nauthors[v1]/len(cluster)))
                 v1 += 1
-            g.add_edges(edges)
-            g.es["weights"] = weights
-            g.vs["label"] = journalname
+            
+            mds_model = m.fit(distance_temp) # shape = journals x n_components
+            X_transformed = mds_model['conf']
 
-            layout = g.layout("kk")
-            ig.plot(g, layout=layout, target=f'{parsed.dir}/graph.pdf')
+            width = nx.get_edge_attributes(g, 'weight')
+            min_w = min(width.values())
+            max_w = max(width.values())
+            for w in width:
+                width[w] = 0.5 + 4*(width[w] - min_w)/(max_w - min_w)
+            
+            edge_labels = {}
+            for v1, v2, w in g.edges.data():
+                edge_labels[(v1, v2)] = f"{w['weight']:.2f}"
+                # print(f'{v1}:{journalname[v1]}:{nauthors[v1]}, {v2}:{journalname[v2]}:{nauthors[v2]} = {distance[vertices[v1], vertices[v2]]}:{w["weight"]}')
+
+            fig = plt.figure(figsize=(24,24))
+            ax = fig.add_axes([0,0,1,1])
+            # pos = nx.spring_layout(g)
+            pos = {}
+            for vi in range(len(cluster)):
+                pos[vi] = X_transformed[vi]
+            # print(pos)
+            nx.draw_networkx_nodes(g, pos, ax=ax, node_size=node_size, node_color="#A8C1FB")
+            nx.draw_networkx_labels(g, pos, ax=ax, labels=journalname, font_color="#DF0000", font_size=22)
+            nx.draw_networkx_edges(g, pos, ax=ax, width=list(width.values()))
+            nx.draw_networkx_edge_labels(g, pos, ax=ax, edge_labels=edge_labels, font_size=18)
+            plt.savefig(f'{parsed.dir}/graph{graph_n}.pdf')
+            graph_n += 1
             
             del journalname
             del vertices
             del g
-            del weights
-            del edges

@@ -109,10 +109,10 @@ else:
             # <url>db/conf/cmcs/cmcs2001.html#Hughes01</url>
             elif child.tag == "url" and child.text is not None and not (save & 0x02): # save == bxxx1x = cross ja achou journal
                 url = child.text
-                find_c = child.text.find('conf')
-                shift_c = 4 # len('conf')
-                find_j = child.text.find('journals')
-                shift_j = 8 # len('journals')
+                find_c = child.text.find('/conf/')
+                shift_c = 6 # len('conf')
+                find_j = child.text.find('/journals/')
+                shift_j = 10 # len('journals')
                 if find_c > -1 or find_j > -1:
                     if find_c > -1 and not only_journals:
                         save = save | 0x02 # can save
@@ -127,10 +127,10 @@ else:
             # <crossref>conf/cmcs/2001</crossref>
             elif child.tag == "crossref" and child.text is not None:
                 cross = child.text
-                find_c = child.text.find('conf')
-                shift_c = 4 # len('conf')
-                find_j = child.text.find('journals')
-                shift_j = 8 # len('journals')
+                find_c = child.text.find('/conf/')
+                shift_c = 6 # len('conf')
+                find_j = child.text.find('/journals/')
+                shift_j = 10 # len('journals')
                 if find_c > -1 or find_j > -1:
                     if find_c > -1 and not only_journals:
                         save = save | 0x02 # can save
