@@ -503,6 +503,11 @@ if do_mds:
 elif opcao_grafo != 2:
     if function != 'agglomerative':
         model = ClusterRec(function=function, threshold=0, times=TIMES).fit(G)
+        
+        # para o finder.py
+        # with open('../data/children_multilevel_' + mode + '.pickle', 'wb') as f:
+        #     pickle.dump(model.children_, f, protocol=2)
+        
         file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
         distance =  np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
         np.fill_diagonal(distance, 0)
@@ -544,12 +549,13 @@ elif opcao_grafo != 2:
         distance =  np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
         np.fill_diagonal(distance, 0)
         model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets, metrics_it=1, max_iter=TIMES, ground_truth=index_to_ground_truth, debug=True)
-        with open('../data/children_agglomerative_' + mode + '.npy', 'wb') as f:
-            np.save(f, model.children_)
-        
-        with open('../data/index_to_journalname' + test_name +'.pickle', 'wb') as handle:
-            pickle.dump(index_to_journalname, handle, protocol=2)
 
+        # para o finder.py
+        # with open('../data/children_agglomerative_' + mode + '.npy', 'wb') as f:
+        #     np.save(f, model.children_)
+        
+        # with open('../data/index_to_journalname' + test_name +'.pickle', 'wb') as handle:
+        #     pickle.dump(index_to_journalname, handle, protocol=2)
 
         # show best metrics
         it = np.argmax(model.metrics_, axis=0)

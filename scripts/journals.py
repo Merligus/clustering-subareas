@@ -13,17 +13,17 @@ arq_o = '../data/dblp2.xml'
 opcao_grafo = 0
 
 # Gerador no arquivo teste?
-if (len(sys.argv) < 3):
+if (len(sys.argv) < 4):
     print('Falta parametros')
     exit()
-elif (len(sys.argv) > 3):
+elif (len(sys.argv) > 4):
     print('Muitos parametros')
     exit()
 else:
     only_journals = bool(int(sys.argv[1]))
-    cut = int(sys.argv[2])
+    cut = float(sys.argv[2]) # [0, 1] porcentagem da ceifada nas conferencias
+    year = int(sys.argv[3])
 test = False
-year = 0
 test_name = ""
 if test:
     test_name = "test"
@@ -33,7 +33,7 @@ if year > 0:
 if only_journals:
     test_name += '_only_journals'
 if cut > 0:
-    test_name += '_cut' + str(cut)
+    test_name += f'_cut{cut:.3}'
 
 # dblp = open(arq_o, 'r', encoding="utf-8")
 # root = ET.parse(dblp).getroot()
@@ -82,6 +82,8 @@ else:
     tag = ''
     journal_name = '-'
     save = 0x00
+    conf_freq = defaultdict(int)
+    find_c = -1
     for event, child in root:
         if event == 'start':
             # <article mdate="2020-03-12" key="tr/meltdown/m18" publtype="informal">
@@ -89,6 +91,7 @@ else:
                 tag = child.tag
                 authors = []
                 journal_name = '-'
+                find_c = -1
                 if 'publtype' not in child.attrib:
                     save = 0x04 # can save
                 elif child.attrib['publtype'] not in publtype_not_accepted:
@@ -120,7 +123,7 @@ else:
                         save = save | 0x02 # can save
                         start = find_j + shift_j + 1
                         end = start + url[start:].find('/')
-                        journal = url[start : end]                    
+                        journal = url[start : end]
             # <crossref>conf/cmcs/2001</crossref>
             elif child.tag == "crossref" and child.text is not None:
                 cross = child.text
@@ -151,14 +154,24 @@ else:
             elif child.tag in {"proceedings"}:
                 if journal_name[0] != '-':
                     journals[journal]['journal_name'].append(journal_name)
+            journals[journal]['conference'] = True if find_c > -1 else False
         if event == 'end':
             child.clear()
 
+    if cut > 0:
+        n_artigos_por_conf = []
+        for journal in journals:
+            if journals[journal]['conference']:
+                n_artigos_por_conf.append(quantity_articles[journal])
+        n_artigos_por_conf.sort() # menor pro maior
+        cut = n_artigos_por_conf[int(cut * len(n_artigos_por_conf))]
+
     remove_list = []
     for journal in journals:
-        if quantity_articles[journal] < cut:
+        if quantity_articles[journal] < cut and journals[journal]['conference']:
             remove_list.append(journal)
             continue
+        journals[journal].pop('conference', None)
         if len(journals[journal]['journal_name']) > 0:
             # Nome completo com metadados
             ocurrences = defaultdict(int)

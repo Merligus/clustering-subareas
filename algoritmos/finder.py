@@ -8,7 +8,8 @@ import string
 
 class ClusterFinder:
 
-    def __init__(self, children, n_samples, in_set_conf, labels_sets):
+    def __init__(self, children, n_samples, in_set_conf, labels_sets, debug = False):
+        self.debug = debug
         self.children = children
         self.n_samples = n_samples
         self.in_set_conf = in_set_conf
@@ -25,25 +26,53 @@ class ClusterFinder:
                         'september', 'november', 'december', 'journal'}
 
     def find_cluster(self, initial_it):
-        for v in range(self.n_samples):
-            self.labels_sets.append({v})
+        if initial_it == 0:
+            for v in range(self.n_samples):
+                self.labels_sets.append({v})
         
-        iteration = 0
-        for index in range(initial_it, self.children.shape[0]):
-            v1, v2 = self.children[index, 0], self.children[index, 1]
+        iteration = len(self.children)
+        for index in range(initial_it, len(self.children)):
+            # v1, v2 = self.children[index, 0], self.children[index, 1]
+            # if v1 >= self.n_samples:
+            #     v1 = self.nodes[v1-self.n_samples]
+            # if v2 >= self.n_samples:
+            #     v2 = self.nodes[v2-self.n_samples]
+            # self.labels_sets[v1] = self.labels_sets[v1].union(self.labels_sets[v2])
+            
+            
+            v1 = next(iter(set(self.children[index])))
             if v1 >= self.n_samples:
                 v1 = self.nodes[v1-self.n_samples]
-            if v2 >= self.n_samples:
-                v2 = self.nodes[v2-self.n_samples]
-            self.labels_sets[v1] = self.labels_sets[v1].union(self.labels_sets[v2])
+
+            if self.debug:
+                print("v1=", v1)
+            for vi in set(self.children[index]):
+                if vi >= self.n_samples:
+                    vi = self.nodes[vi-self.n_samples]
+                if vi != v1:
+                    if self.debug:
+                        print("vi=", vi)
+                    self.labels_sets[v1] = self.labels_sets[v1].union(self.labels_sets[vi])
+            
             found = True
-            for v in in_set_conf:
+            if self.debug:
+                print(f"labels_sets[{v1}]=", self.labels_sets[v1])
+                print("in_set_conf", self.in_set_conf)
+            for v in self.in_set_conf:
                 if v not in self.labels_sets[v1]:
                     found = False
                     break
+                else:
+                    if self.debug:
+                        print(v, "Aparece")
             
             self.nodes.append(v1)
-            self.labels_sets[v2] = {-1}
+            # self.labels_sets[v2] = {-1}
+            for vi in self.children[index]:
+                if vi >= self.n_samples:
+                    vi = self.nodes[vi-self.n_samples]
+                if vi != v1:
+                    self.labels_sets[vi] = {-1}
 
             if found:
                 print("Achou")
@@ -51,6 +80,9 @@ class ClusterFinder:
                 self.v = v1
                 break
             
+            if self.debug:
+                entrada = input()
+        
         return self.v, iteration
 
     # n = top n
@@ -80,6 +112,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-m', action='store', dest='mode', type=str, default='union')
 parser.add_argument('-i', action='store', dest='in_name', type=str, default='-')
 parser.add_argument('-d', action='store', dest='dir', type=str, default='../data')
+parser.add_argument('-f', action='store', dest='function', type=str, default='agglomerative')
 
 parsed = parser.parse_args()
 if parsed.in_name != '-':
@@ -90,14 +123,22 @@ print(25*'*', 'ARGS', 25*'*')
 print(f'Mode: {parsed.mode}')
 print(f'In name: {parsed.in_name}')
 print(f'Directory: {parsed.dir}')
+print(f'Function: {parsed.function}')
 
 filename = f"{parsed.dir}/graph_nao_direcionado" + parsed.mode + parsed.in_name + '.npy'
 with open(filename, "rb") as f:
     adj_mat = np.load(f)
+distance = np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
 
-filename = f"{parsed.dir}/children_agglomerative_" + parsed.mode + '.npy'
-with open(filename, "rb") as f:
-    children = np.load(f)
+filename = f"{parsed.dir}/children_{parsed.function}_" + parsed.mode
+if parsed.function == 'agglomerative': # load em python
+    with open(filename + '.npy', "rb") as f:
+        children = np.load(f)
+elif parsed.function == 'multilevel':
+    with open(filename + '.pickle', 'rb') as f:
+        children = pickle.load(f)
+else:
+    raise KeyError(f'Função não disponível.')
 
 with open(f'{parsed.dir}/index_to_journalname.pickle', 'rb') as handle:
     index_to_journalname = pickle.load(handle)
@@ -118,6 +159,8 @@ with open(f'{parsed.dir}/journals_dict{parsed.in_name}.pickle', 'rb') as handle:
 #         index_to_journal_complete_name[v] = journal + ': ' + journals[journal]['journal_name']
 #     elif 'journal_name_rough' in journals[journal]:
 #         index_to_journal_complete_name[v] = journal + ': ' + journals[journal]['journal_name_rough']
+#     else:
+#         index_to_journal_complete_name[v] = journal + ': ' + journal.upper()
 
 # with open(f'{parsed.dir}/index_to_journal_complete_name.pickle', 'wb') as handle:
 #     pickle.dump(index_to_journal_complete_name, handle, protocol=2)
@@ -137,10 +180,11 @@ while True:
             s += index_to_journalname[key] + ' ' 
     print(f'Identificados: {s}')
 
-    n_samples = adj_mat.shape[0]
+    n_samples = len(distance)
     
     print("Procurando...")
     labels_sets = []
+    old_cluster = in_set_conf
     cf = ClusterFinder(children, n_samples, in_set_conf, labels_sets)
     c, iteration = cf.find_cluster(0)
     cluster = cf.labels_sets[c]
@@ -160,13 +204,26 @@ while True:
             break
         # opcao de mostrar a proxima juncao do cluster
         elif entrada[0] == '1':
+            old_cluster = cluster
             c, iteration = cf.find_cluster(iteration+1)
-            cluster = cf.labels_sets[c]
-            print(f"Cluster de tamanho {len(cluster)} na iteração {iteration}")
+            if iteration < len(cf.children):
+                cluster = cf.labels_sets[c]
+                print(f"Cluster de tamanho {len(cluster)} na iteração {iteration}")
+            else:
+                print(f"Não há próxima iteração")
         # opcao de mostrar o cluster
         elif entrada[0] == '2':
-            for i, vi in enumerate(cluster):
+            print(25*'*', 'Velhos', 25*'*')
+            i = 0
+            for vi in old_cluster:
                 print(f"{i}: {index_to_journal_complete_name[vi]}")
+                i += 1
+
+            print(25*'*', 'Novos', 25*'*')
+            for vi in cluster:
+                if vi not in old_cluster:
+                    print(f"{i}: {index_to_journal_complete_name[vi]}")
+                    i += 1
         # mostra a frequencia das palavras no cluster
         elif entrada[0] == '3':
             sentences = []
@@ -189,9 +246,9 @@ while True:
             while v1 < len(cluster):
                 v2 = v1 + 1
                 while v2 < len(cluster):
-                    if adj_mat[vertices[v1], vertices[v2]] > 0 and adj_mat[vertices[v1], vertices[v2]] < np.inf:
+                    if distance[vertices[v1], vertices[v2]] > 0 and distance[vertices[v1], vertices[v2]] < np.inf:
                         edges.append((v1, v2))
-                        weights.append(adj_mat[vertices[v1], vertices[v2]])
+                        weights.append(distance[vertices[v1], vertices[v2]])
                     v2 += 1
                 journalname.append(index_to_journalname[vertices[v1]])
                 v1 += 1
@@ -200,7 +257,7 @@ while True:
             g.vs["label"] = journalname
 
             layout = g.layout("kk")
-            ig.plot(g, layout=layout, target=f'graph.pdf')
+            ig.plot(g, layout=layout, target=f'{parsed.dir}/graph.pdf')
             
             del journalname
             del vertices

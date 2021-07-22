@@ -12,6 +12,7 @@ class ClusterRec:
         graph['names'] = [v for v in range(V)]
         graphs = [('', graph)]
         self.VC = []
+        children = []
         for _ in range(self.times):
             new_graphs = []
             for ind, g in graphs:
@@ -62,13 +63,33 @@ class ClusterRec:
                         sub_g = g.subgraph(comm, implementation='create_from_scratch')
                         # Saving their real names
                         sub_g['names'] = [g['names'][v] for v in comm]
+                        children.insert(0, set(sub_g['names']))
                         # Insert the subgraph in the queue of execution
                         new_graphs.append((ind + str(e + 1) + '.', sub_g))
                     else:
+                        real_names = [g['names'][v] for v in comm]
+                        children.insert(0, set(real_names))
                         # No need to execute it again, just save their real names
-                        self.VC.append((ind + str(e + 1) + '.', [g['names'][v] for v in comm]))
+                        self.VC.append((ind + str(e + 1) + '.', real_names))
             del graphs
             graphs = new_graphs
         for ind, g in graphs:
             self.VC.append((ind, g['names']))
+
+        # process children
+        last_comm = dict()
+        for v in range(V):
+            last_comm[v] = -1
+
+        self.children_ = []
+        for c, comm in enumerate(children):
+            new_comm = set(comm)
+            for czinho in range(c):
+                if self.children_[czinho].issubset(new_comm):
+                    for v in self.children_[czinho]:
+                        new_comm.remove(v)
+                    new_comm.add(V + czinho)
+            self.children_.append(new_comm)
+        x = set()
+
         return self

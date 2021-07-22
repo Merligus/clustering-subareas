@@ -27,19 +27,19 @@ def binarySearch(alist, item):
 opcao_grafo = 0
 
 # Gerador no arquivo teste?
-if (len(sys.argv) < 4):
+if (len(sys.argv) < 5):
     print('Falta parametros')
     exit()
-elif (len(sys.argv) > 4):
+elif (len(sys.argv) > 5):
     print('Muitos parametros')
     exit()
 else:
     only_journals = bool(int(sys.argv[1]))
-    cut = int(sys.argv[2])
-    mode = sys.argv[3]
+    cut = float(sys.argv[2])
+    year = int(sys.argv[3])
+    mode = sys.argv[4]
 test = False
 test_name = ""
-year = 0
 if test:
     test_name = "_test"
 if year > 0:
@@ -47,7 +47,7 @@ if year > 0:
 if only_journals:
     test_name += '_only_journals'
 if cut > 0:
-    test_name += '_cut' + str(cut)
+    test_name += f'_cut{cut:.3}'
 
 with open('../data/journals_dict' + test_name + '.pickle', 'rb') as handle:
     journals = pickle.load(handle)
