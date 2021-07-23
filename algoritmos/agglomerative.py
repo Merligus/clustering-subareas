@@ -141,7 +141,7 @@ class Agglomerative:
                     print(f'Fowlkes-Mallows: {FMS:.2%}')
                     print(50*'*')
                 metrics_l.append([ARS, AMIS, HS, CS, VMS, FMS])
-            np.fill_diagonal(adj_mat, 0)
+            np.fill_diagonal(adj_mat, -1)
         
         c = 0
         for set_c in labels_sets:

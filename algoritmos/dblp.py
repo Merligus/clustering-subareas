@@ -504,8 +504,8 @@ elif opcao_grafo != 2:
         model = ClusterRec(function=function, threshold=0, times=TIMES).fit(G)
         
         # para o finder.py
-        # with open('../data/children_multilevel_' + mode + '.pickle', 'wb') as f:
-        #     pickle.dump(model.children_, f, protocol=2)
+        with open('../data/children_multilevel_' + mode + in_name + '.pickle', 'wb') as f:
+            pickle.dump(model.children_, f, protocol=2)
         
         file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
         distance =  np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
@@ -550,8 +550,8 @@ elif opcao_grafo != 2:
         model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets, metrics_it=1, max_iter=TIMES, ground_truth=index_to_ground_truth, debug=True)
 
         # para o finder.py
-        # with open('../data/children_agglomerative_' + mode + '.npy', 'wb') as f:
-        #     np.save(f, model.children_)
+        with open('../data/children_agglomerative_' + mode + in_name + '.npy', 'wb') as f:
+            np.save(f, model.children_)
 
         # show best metrics
         it = np.argmax(model.metrics_, axis=0)
