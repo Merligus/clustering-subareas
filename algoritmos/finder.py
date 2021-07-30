@@ -29,8 +29,8 @@ class ClusterFinder:
 
     def find_cluster(self, initial_it):
         if initial_it == 0:
-            for v in range(self.n_samples):
-                self.labels_sets.append({v})
+            for vi in range(self.n_samples):
+                self.labels_sets.append({vi})
         
         iteration = len(self.children)
         for index in range(initial_it, len(self.children)):
@@ -159,6 +159,7 @@ for v in index_to_journalname:
     elif 'journal_name_rough' in journals[journal]:
         index_to_journal_complete_name[v] = journal + ': ' + journals[journal]['journal_name_rough']
     else:
+        print(f"{journal} nome não identificado")
         index_to_journal_complete_name[v] = journal + ': ' + journal.upper()
 
 with open(f'{parsed.dir}/index_to_journal_complete_name{parsed.in_name}.pickle', 'wb') as handle:
@@ -184,6 +185,9 @@ while True:
         if index_to_journalname[key] in entrada:
             in_set_conf.add(key)
             s += index_to_journalname[key] + ' ' 
+    if len(s) == 0:
+        print(f'Nenhum identificado')
+        continue
     print(f'Identificados: {s}')
 
     n_samples = len(distance)
@@ -193,6 +197,9 @@ while True:
     old_cluster = in_set_conf
     cf = ClusterFinder(children, n_samples, in_set_conf, labels_sets)
     c, iteration = cf.find_cluster(0)
+    if iteration == len(cf.children):
+        print(f"Nenhum cluster achado")
+        continue
     cluster = cf.labels_sets[c]
     print(f"Primeiro cluster de tamanho {len(cluster)} juntos após {iteration} iterações")
     
@@ -204,6 +211,8 @@ while True:
         print("3. Mostrar frequência das palavras do cluster")
         print("4. Mostrar grafo")
         entrada = input().strip()
+        if len(entrada) == 0:
+            continue
         
         # opcao de sair da atual
         if entrada[0] == '0':
@@ -254,11 +263,12 @@ while True:
                 v2 = v1 + 1
                 while v2 < len(cluster):
                     if distance[vertices[v1], vertices[v2]] > 0 and distance[vertices[v1], vertices[v2]] < np.inf:
-                        g.add_edge(v1, v2, weight=distance[vertices[v1], vertices[v2]])
+                        if adj_mat[vertices[v1], vertices[v2]] > 0:
+                            g.add_edge(v1, v2, weight=adj_mat[vertices[v1], vertices[v2]])
                         distance_temp[v1, v2] = distance_temp[v2, v1] = distance[vertices[v1], vertices[v2]]
                     v2 += 1
                 journalname[v1] = index_to_journalname[vertices[v1]]
-                node_size.append(4*np.ceil(nauthors[v1]/len(cluster)))
+                node_size.append(4*np.ceil(nauthors[vertices[v1]]/len(cluster)))
                 v1 += 1
             
             mds_model = m.fit(distance_temp) # shape = journals x n_components
@@ -272,7 +282,7 @@ while True:
             
             edge_labels = {}
             for v1, v2, w in g.edges.data():
-                edge_labels[(v1, v2)] = f"{w['weight']:.2f}"
+                edge_labels[(v1, v2)] = f"{adj_mat[vertices[v1], vertices[v2]]:.2f}" # w['weight']
                 # print(f'{v1}:{journalname[v1]}:{nauthors[v1]}, {v2}:{journalname[v2]}:{nauthors[v2]} = {distance[vertices[v1], vertices[v2]]}:{w["weight"]}')
 
             fig = plt.figure(figsize=(24,24))

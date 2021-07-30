@@ -110,38 +110,42 @@ else:
             elif child.tag == "url" and child.text is not None and not (save & 0x02): # save == bxxx1x = cross ja achou journal
                 url = child.text
                 find_c = child.text.find('/conf/')
-                shift_c = 6 # len('conf')
+                shift_c = 6 # len('/conf/')
                 find_j = child.text.find('/journals/')
-                shift_j = 10 # len('journals')
-                if find_c > -1 or find_j > -1:
-                    if find_c > -1 and not only_journals:
-                        save = save | 0x02 # can save
-                        start = find_c + shift_c + 1
-                        end = start + url[start:].find('/')
-                        journal = url[start : end]
-                    else:
-                        save = save | 0x02 # can save
-                        start = find_j + shift_j + 1
-                        end = start + url[start:].find('/')
-                        journal = url[start : end]
+                shift_j = 10 # len('/journals/')
+                if find_c > -1 and not only_journals:
+                    save = save | 0x02 # can save
+                    start = find_c + shift_c
+                    end = start + url[start:].find('/')
+                    journal = url[start : end]
+                elif find_j > -1:
+                    save = save | 0x02 # can save
+                    start = find_j + shift_j
+                    end = start + url[start:].find('/')
+                    journal = url[start : end]
+                else:
+                    find_c = -1
+                    find_j = -1
             # <crossref>conf/cmcs/2001</crossref>
             elif child.tag == "crossref" and child.text is not None:
                 cross = child.text
                 find_c = child.text.find('/conf/')
-                shift_c = 6 # len('conf')
+                shift_c = 6 # len('/conf/')
                 find_j = child.text.find('/journals/')
-                shift_j = 10 # len('journals')
-                if find_c > -1 or find_j > -1:
-                    if find_c > -1 and not only_journals:
-                        save = save | 0x02 # can save
-                        start = find_c + shift_c + 1
-                        end = start + cross[start:].find('/')
-                        journal = cross[start : end]
-                    else:
-                        save = save | 0x02 # can save
-                        start = find_j + shift_j + 1
-                        end = start + cross[start:].find('/')
-                        journal = cross[start : end]
+                shift_j = 10 # len('/journals/')
+                if find_c > -1 and not only_journals:
+                    save = save | 0x02 # can save
+                    start = find_c + shift_c
+                    end = start + cross[start:].find('/')
+                    journal = cross[start : end]
+                elif find_j > -1:
+                    save = save | 0x02 # can save
+                    start = find_j + shift_j
+                    end = start + cross[start:].find('/')
+                    journal = cross[start : end]
+                else:
+                    find_c = -1
+                    find_j = -1
         elif event == 'end' and save == 0x07 and child.tag in {'article', 'inproceedings', 'proceedings'}:
             save = 0x00
             if journal not in journals:
