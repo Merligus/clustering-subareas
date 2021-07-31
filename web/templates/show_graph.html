@@ -1,0 +1,53 @@
+{% extends "home.html" %}
+{% block title %}2D Graph{% endblock %}
+{% block content %}
+<div class="jumbotron">
+    <h1>2D Graph</h1>
+
+    <hr class="my-4"></hr>
+        
+    <p class="lead">
+        <form action="venues0#" method="get" class="form-inline">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit" value="">Show venues</button>
+        </form>
+    </p>
+
+    <p class="lead">
+        <form action="frequency#" class="form-inline">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit" value="">Show frequency</button>
+        </form>
+    </p>
+
+    <p class="text-left" style="font-size:30px">Cluster size: {{tam_l}}</p>
+    
+    <ul class="list-group">
+        {% for i, nome in old %}
+            <li class="list-group-item d-flex">
+                <button type="button" class="btn btn-primary">{{i}}</button>
+                <ul class="list-group flex-row">
+                    <li class="list-group-item d-flex">{{nome}}</li>
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <hr class="my-2">
+
+    <p class="text-left" style="font-size:15px">New</p>
+
+    <ul class="list-group">
+        {% for i, nome in new %}
+            <li class="list-group-item d-flex">
+                <button type="button" class="btn btn-primary">{{i}}</button>
+                <ul class="list-group flex-row">
+                    <li class="list-group-item d-flex">{{nome}}</li>
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <div class="text-center">
+        <img src='/static/images/{{src}}' class="img-fluid" width="1000" height="1000"></img>
+    </div>
+</div>
+{% endblock %}
