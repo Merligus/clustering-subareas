@@ -1,0 +1,55 @@
+{% extends "home.html" %}
+{% block title %}Venues{% endblock %}
+{% block content %}
+    <div class="jumbotron">
+        <h1>Venues</h1>
+
+        <hr class="my-4">
+        
+        <p class="lead">
+            <form action="#" method="post" class="form-inline">
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit" value="">Next agglomeration</button>
+            </form>
+        </p>
+
+        <p class="lead">
+            <form action="frequency#" class="form-inline">
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit" value="">Show frequency</button>
+            </form>
+        </p>
+
+        <p class="lead">
+            <form action="graph#" class="form-inline">
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit" value="">Show 2D graph</button>
+            </form>
+        </p>
+
+        <p class="text-left" style="font-size:30px">Cluster size: {{tam_l}}</p>
+        
+        <ul class="list-group">
+            {% for i, nome in old %}
+                <li class="list-group-item d-flex">
+                    <button type="button" class="btn btn-primary">{{i}}</button>
+                    <ul class="list-group flex-row">
+                        <li class="list-group-item d-flex">{{nome}}</li>
+                    </ul>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <hr class="my-2">
+
+        <p class="text-left" style="font-size:15px">New</p>
+
+        <ul class="list-group">
+            {% for i, nome in new %}
+                <li class="list-group-item d-flex">
+                    <button type="button" class="btn btn-primary">{{i}}</button>
+                    <ul class="list-group flex-row">
+                        <li class="list-group-item d-flex">{{nome}}</li>
+                    </ul>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

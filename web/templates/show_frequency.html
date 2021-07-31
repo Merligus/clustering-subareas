@@ -1,0 +1,32 @@
+{% extends "home.html" %}
+{% block title %}Name Frequency{% endblock %}
+{% block content %}
+<div class="jumbotron">
+    <h1>Name Frequency</h1>
+
+    <hr class="my-4">
+        
+    <p class="lead">
+        <form action="venues0#" method="get" class="form-inline">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit" value="">Show venues</button>
+        </form>
+    </p>
+
+    <p class="lead">
+        <form action="graph#" class="form-inline">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit" value="">Show 2D graph</button>
+        </form>
+    </p>
+
+    <ul class="list-group">
+        {% for word, freq in word_freq %}
+            <li class="list-group-item d-flex">
+                <button type="button" class="btn btn-primary">{{freq}}</button>
+                <ul class="list-group flex-row">
+                    <li class="list-group-item d-flex">{{word}}</li>
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
