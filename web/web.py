@@ -14,6 +14,7 @@ app.secret_key = "key para session"
 parsed = Params('2010_only_journals', 'union', './data', 'agglomerative')
 parsed.load_files()
 
+@app.route("/", methods=["POST", "GET"])
 @app.route("/search", methods=["POST", "GET"])
 def search():
     if request.method == "POST" and "list" in request.form:
@@ -168,5 +169,7 @@ def show_graph():
     else:
         return redirect(url_for("listar_conferencias", next="0"))
 
-if __name__ == "__main__":
+def run():
     app.run(debug=False)
+
+run()
