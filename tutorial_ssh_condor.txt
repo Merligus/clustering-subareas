@@ -3,7 +3,7 @@
 	senha DEUS
 
 - listando environments 
-	conda env list
+	conda env lista
 
 - ativando environment
 	conda activate graph
