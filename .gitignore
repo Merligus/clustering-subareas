@@ -1,3 +1,5 @@
 env/
 workspace.code-workspace
 tutorial_ssh_condor.txt
+comandos_git.txt
+.gitignore
