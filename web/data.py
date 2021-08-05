@@ -7,15 +7,8 @@ class Data:
         self.children = {}
         for function in ["agglomerative", "multilevel"]:
             filename = f"{dir}/children_{function}_" + mode + in_name
-            if function == "agglomerative":
-                with open(filename + '.npy', "rb") as f:
-                    ch = np.load(f)
-                    self.children[function] = ch.tolist()
-            elif function == "multilevel":
-                with open(filename + '.pickle', 'rb') as f:
-                    self.children[function] = pickle.load(f)
-            else:
-                raise KeyError(f'Função não disponível.')
+            with open(filename + '.pickle', 'rb') as f:
+                self.children[function] = pickle.load(f)
 
         filename = f"{dir}/graph_nao_direcionado" + mode + in_name + '.npy'
         with open(filename, "rb") as f:

@@ -178,11 +178,15 @@ if opcao_grafo == 0:
 
     # Cortando uma porcentagem dos pesos mais baixos
     if cut_p:
-        adj_flatten = adj_mat.flatten()
-        k = int(adj_mat.shape[0] * adj_mat.shape[1] * 0.1)
-        idx = np.argpartition(adj_flatten, k, axis=None)
-        adj_flatten[idx[:k]] = 0.
-        adj_mat = adj_flatten.reshape(adj_mat.shape[0], adj_mat.shape[1])
+        n_samples = adj_mat.shape[0]
+        k = int(n_samples * 0.1)
+
+        adj_mat = np.where(adj_mat == 0, np.inf, adj_mat)
+        for _ in range(k):
+            ind = np.unravel_index(np.argmin(adj_mat, axis=None), adj_mat.shape)
+            adj_mat[ind[0], ind[1]] = 0
+            adj_mat[ind[1], ind[0]] = 0
+        adj_mat = np.where(adj_mat == np.inf, 0, adj_mat)
 
     if log_transf:
         adj_mat = np.where(adj_mat == 0, np.inf, adj_mat)
@@ -559,8 +563,8 @@ elif opcao_grafo != 2:
         model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets, metrics_it=1, max_iter=TIMES, ground_truth=index_to_ground_truth, debug=True)
 
         # para o finder.py
-        with open('../data/children_agglomerative_' + mode + in_name + '.npy', 'wb') as f:
-            np.save(f, model.children_)
+        with open('../data/children_agglomerative_' + mode + in_name + '.pickle', 'wb') as f:
+            pickle.dump(model.children_.tolist(), f, protocol=2)
 
         # show best metrics
         it = np.argmax(model.metrics_, axis=0)
