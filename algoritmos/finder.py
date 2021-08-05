@@ -25,8 +25,8 @@ class ClusterFinder:
                         'proceedings', 'of', 'to', 'for', 'comp.', 'computer', 'conference', 'workshop',
                         'on', 'and', 'or', 'the', 'that', 'this', 'with', 'good', 'bad', 'show', 'in',
                         'january', 'february', 'march', 'may', 'april', 'june', 'july', 'august', 'october',
-                        'september', 'november', 'december', 'journal'}
-
+                        'september', 'november', 'december', 'journal', '--'}
+    
     def find_cluster(self, initial_it):
         if initial_it == 0:
             for vi in range(self.n_samples):
@@ -157,13 +157,12 @@ class ClusterFinder:
 #     if journal not in journals:
 #         print(journal)
 #         continue
+#     suff = ""
 #     if len(journals[journal]['journal_name']) > 0:
-#         index_to_journal_complete_name[v] = journal + ': ' + journals[journal]['journal_name']
-#     elif 'journal_name_rough' in journals[journal]:
-#         index_to_journal_complete_name[v] = journal + ': ' + journals[journal]['journal_name_rough']
-#     else:
-#         print(f"{journal} nome não identificado")
-#         index_to_journal_complete_name[v] = journal + ': ' + journal.upper()
+#         suff += " " + journals[journal]['journal_name']
+#     if 'journal_name_rough' in journals[journal]:
+#         suff += " -- " + journals[journal]['journal_name_rough']
+#     index_to_journal_complete_name[v] = journal + ': ' + suff
 
 # with open(f'{parsed.dir}/index_to_journal_complete_name{parsed.in_name}.pickle', 'wb') as handle:
 #     pickle.dump(index_to_journal_complete_name, handle, protocol=2)

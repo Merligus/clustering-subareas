@@ -84,6 +84,7 @@ else:
     save = 0x00
     conf_freq = defaultdict(int)
     find_c = -1
+    find_j = -1
     for event, child in root:
         if event == 'start':
             # <article mdate="2020-03-12" key="tr/meltdown/m18" publtype="informal">
@@ -92,6 +93,7 @@ else:
                 authors = []
                 journal_name = '-'
                 find_c = -1
+                find_j = -1
                 if 'publtype' not in child.attrib:
                     save = 0x04 # can save
                 elif child.attrib['publtype'] not in publtype_not_accepted:
@@ -118,11 +120,13 @@ else:
                     start = find_c + shift_c
                     end = start + url[start:].find('/')
                     journal = url[start : end]
+                    journal += '_c'
                 elif find_j > -1:
                     save = save | 0x02 # can save
                     start = find_j + shift_j
                     end = start + url[start:].find('/')
                     journal = url[start : end]
+                    journal += '_j'
                 else:
                     find_c = -1
                     find_j = -1
@@ -138,11 +142,13 @@ else:
                     start = find_c + shift_c
                     end = start + cross[start:].find('/')
                     journal = cross[start : end]
+                    journal += '_c'
                 elif find_j > -1:
                     save = save | 0x02 # can save
                     start = find_j + shift_j
                     end = start + cross[start:].find('/')
                     journal = cross[start : end]
+                    journal += '_j'
                 else:
                     find_c = -1
                     find_j = -1
@@ -159,6 +165,7 @@ else:
                 if journal_name[0] != '-':
                     journals[journal]['journal_name'].append(journal_name)
             journals[journal]['conference'] = True if find_c > -1 else False
+            journals[journal]['journal'] = True if find_j > -1 else False
         if event == 'end':
             child.clear()
 
@@ -176,6 +183,7 @@ else:
             remove_list.append(journal)
             continue
         journals[journal].pop('conference', None)
+        journals[journal].pop('journal', None)
         if len(journals[journal]['journal_name']) > 0:
             # Nome completo com metadados
             ocurrences = defaultdict(int)
@@ -205,7 +213,7 @@ else:
             for token in name_tokenized:
                 if token in relevant_tokens:
                     name += token + ' ' 
-            
+                    
             journals[journal]['journal_name'] = name
         else:
             journals[journal]['journal_name'] = ''

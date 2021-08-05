@@ -14,11 +14,29 @@ class Params():
         self.dir = dir
         self.function = function
 
+        self.distance = np.zeros((2,2))
+        self.adj_mat = np.zeros((2,2))
+        self.children = [2, 2]
+        self.index_to_journalname = [2, 2]
+        self.journals = {'a': [1, 2], 'b':[3, 4]}
+        self.index_to_journal_complete_name = {'a': [1, 2], 'b':[3, 4]}
+        self.nauthors = [2, 2]
+        self.iteration = 0
+        self.old_cluster = {'a': [1, 2], 'b':[3, 4]}
+        self.cluster = {'a': [1, 2], 'b':[3, 4]}
+        self.cf = ClusterFinder(self.children, len(self.distance), set([0]), [])
+
         print(25*'*', 'ARGS', 25*'*')
         print(f'Mode: {self.mode}')
         print(f'In name: {self.in_name}')
         print(f'Directory: {self.dir}')
         print(f'Function: {self.function}')
+    
+    def serialize(self):
+        return
+    
+    def deserialize(self):
+        return
 
     def load_files(self):
         filename = f"{self.dir}/graph_nao_direcionado" + self.mode + self.in_name + '.npy'
@@ -48,13 +66,12 @@ class Params():
             if journal not in self.journals:
                 print(journal)
                 continue
+            suff = ""
             if len(self.journals[journal]['journal_name']) > 0:
-                self.index_to_journal_complete_name[v] = journal + ': ' + self.journals[journal]['journal_name']
-            elif 'journal_name_rough' in self.journals[journal]:
-                self.index_to_journal_complete_name[v] = journal + ': ' + self.journals[journal]['journal_name_rough']
-            else:
-                print(f"{journal} nome não identificado")
-                self.index_to_journal_complete_name[v] = journal + ': ' + journal.upper()
+                suff += " " + self.journals[journal]['journal_name']
+            if 'journal_name_rough' in self.journals[journal]:
+                suff += " -- " + self.journals[journal]['journal_name_rough']
+            self.index_to_journal_complete_name[v] = journal + ':' + suff
 
         with open(f'{self.dir}/index_to_journal_complete_name{self.in_name}.pickle', 'wb') as handle:
             pickle.dump(self.index_to_journal_complete_name, handle, protocol=2)

@@ -6,7 +6,7 @@ from algoritmos.smacof import MDS
 from .data import Params
 import os
 from algoritmos.finder import ClusterFinder
-from flask import Flask, redirect, url_for, render_template, request
+from flask import Flask, redirect, url_for, render_template, request, session
 
 app = Flask(__name__)
 app.secret_key = "key para session"

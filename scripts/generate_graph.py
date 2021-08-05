@@ -119,27 +119,13 @@ else:
     # file_authors.close()
     # file_journals.close()
 
-    # debug
-    focar = "scc"
-    focar_index = 0
-    outros = {"tsas", "w2gis", "agile", "cosit", "josis", "spatialCognition", "jlbs", "giscience", "lbs"}
-    index_to_outros = {}
-
     list_of_authors = []
     journal_ind = {}
     for index, journal in enumerate(journals):
         list_of_authors.append(journals[journal])
         journal_ind[journal] = index
 
-        # debug
-        if journal in outros:
-            index_to_outros[index] = journal
-            print(f"tamanho {journal} = {len(list_of_authors[-1])}")
-        if journal == focar:
-            focar_index = index
-            print(f"tamanho {journal} = {len(list_of_authors[-1])}")
-
-        if 'journal_name' in list_of_authors[-1] or 'journal_name_rough' in list_of_authors[-1]:
+        if 'journal' in list_of_authors[-1] or 'conference' in list_of_authors[-1] or 'journal_name' in list_of_authors[-1] or 'journal_name_rough' in list_of_authors[-1]:
             print(f'{journal} errado')
         
 if opcao_grafo == 0:
@@ -182,20 +168,10 @@ else:
             if l1_len > l2_len:
                 l1, l2 = l2, l1
                 l1_len, l2_len = l2_len, l1_len
-
-            # debug
-            if focar_index in {v1, v2} and v1 in index_to_outros:
-                print(f"{focar} e {index_to_outros[v1]}")
-            if focar_index in {v1, v2} and v2 in index_to_outros:
-                print(f"{focar} e {index_to_outros[v2]}")
             
             for authors1 in l1:
                 if l2.get(authors1):
                     common += 1
-
-                    # debug
-                    if focar_index in {v1, v2} and (v1 in index_to_outros or v2 in index_to_outros):
-                        print(f'\t autor :{authors1}:')
 
             if opcao_grafo == 0:
                 if common != 0:
