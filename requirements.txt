@@ -5,3 +5,5 @@ nltk==3.6.2
 numpy==1.21.1
 scipy==1.7.1
 tqdm==4.62.0
+Flask-Cors==3.0.10
+Flask-Session==0.4.0

@@ -8,12 +8,19 @@ from .data import Params, Data
 import os
 from algoritmos.finder import ClusterFinder
 from flask import Flask, redirect, url_for, render_template, request, session, flash
+from flask_session import Session
+from flask_cors import CORS
 
 app = Flask(__name__)
-app.config.from_object(__name__)
-app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 app.secret_key = "key para session"
 app.session_type = "filesystem"
+SECRET_KEY = "key para session"
+SESSION_TYPE = 'filesystem'
+app.config.from_object(__name__)
+app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
+Session(app)
+CORS(app)
+
 db = Data("_2010_only_journals", "union", "./data")
 
 @app.route("/", methods=["POST", "GET"])
