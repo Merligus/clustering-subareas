@@ -2,6 +2,14 @@
 {% block title %}Search Venues{% endblock %}
 {% block content %}
 <div class="jumbotron">
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for msg in messages %}
+                <p style="color:red"><b>{{msg}}</b></p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <h1>Search</h1>
 
     <hr class="my-4">
@@ -27,16 +35,81 @@
                 </select>
             </div>
         </div>
-        
+
         <div class="form-group row">
+            <label for="lista_selected" class="col-sm-2 col-form-label">Selected Venues</label>
+            <div class="col-sm-10">
+                <ul id="lista_selected" class="list-group">
+                    {% for j in selected_l %}
+                        <li class="list-group-item">{{j}}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+        <!-- <div class="form-group row">
             <label for="venues" class="col-sm-2 col-form-label">Venues</label>
             <div class="col-sm-10">
-                <input class="form-control mr-sm-2" id="venues" type="text" name="list" placeholder="Ex.: ml aai jmlr" aria-label="Venue">
+                <input class="form-control mr-sm-2" id="venues" type="text" name="list" placeholder="<venue>_<c or j>Ex.: ml_j aaai_c jmlr_j" aria-label="Venue">
+            </div>
+        </div> -->
+
+        <div class="form-group row">
+            <label for="venue" class="col-sm-2 col-form-label">Search</label>
+            <div class="col-sm-10">
+                <input class="form-control mr-sm-2" type="text" placeholder="Search.." id="venue" value=""></input>
             </div>
         </div>
 
         <div class="form-group row">
-            <button class="btn btn-outline-success my-2 my-sm-0" type="submit" value="">Search</button>
+            <div id="dropdownVenues" class="btn-group-vertical btn-block">
+                {% for j, journal in venues %}
+                    <button class="btn btn-outline-info btn-lg btn-block" name="sel" type="submit" value="{{journal}}">{{journal}}</button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <script>
+            var text = document.getElementById("venue");
+            div = document.getElementById("dropdownVenues");
+            a = div.getElementsByTagName("button");
+            for (i = 0; i < a.length; i++)
+                a[i].style.display = "none";
+
+            text.addEventListener("keyup", 
+                function()
+                {
+                    var input, filter, a, i;
+                                            
+                    input = document.getElementById("venue");
+                    filter = this.value.toUpperCase();
+                    div = document.getElementById("dropdownVenues");
+                    a = div.getElementsByTagName("button");
+                    if (this.value.length > 1)
+                    {
+                        for (i = 0; i < a.length; i++)
+                        {
+                            txtValue = a[i].textContent || a[i].innerText;
+                            if (txtValue.toUpperCase().indexOf(filter) > -1)
+                                a[i].style.display = "";
+                            else
+                                a[i].style.display = "none";
+                        }
+                    }
+                    else
+                        for (i = 0; i < a.length; i++)
+                            a[i].style.display = "none";
+                }
+            )
+        </script>
+
+        <div class="form-group row">
+            <div class="col">
+                <button class="btn btn-outline-danger my-2 my-sm-0 btn-block" name="reset" type="submit" value="">Reset</button>
+            </div>
+            <div class="col">
+                <button class="btn btn-outline-success my-2 my-sm-0 btn-block" name="search" type="submit" value="">Search</button>
+            </div>
         </div>
     </form>
 </div>

@@ -2,27 +2,49 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from numpy.lib.function_base import _select_dispatcher
 from algoritmos.smacof import MDS
 from .data import Params, Data
 import os
 from algoritmos.finder import ClusterFinder
-from flask import Flask, redirect, url_for, render_template, request, session
+from flask import Flask, redirect, url_for, render_template, request, session, flash
 
 app = Flask(__name__)
+app.config.from_object(__name__)
+app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 app.secret_key = "key para session"
+app.session_type = "filesystem"
 db = Data("_2010_only_journals", "union", "./data")
 
 @app.route("/", methods=["POST", "GET"])
 @app.route("/search", methods=["POST", "GET"])
 def search():
-    if request.method == "POST" and "list" in request.form:
-        venues_s = set(request.form["list"].strip().split())
+    global db
+    if "selected" not in session:
+        session["selected"] = []
+        session.modified = True
 
+    if request.method == "POST" and "reset" in request.form:
+        session["selected"] = []
+        session.modified = True
+        return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
+    elif request.method == "POST" and "sel" in request.form:
+        if request.form["sel"] not in session["selected"]:
+            session["selected"].append(request.form["sel"])
+            session.modified = True
+        return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
+    elif request.method == "POST" and "search" in request.form:
+        selected_j = []
+        for journal_selected in session["selected"]:
+            for j, journal in db.journal_names_list:
+                if journal_selected == journal:
+                    selected_j.append(j)
+        venues_s = set(selected_j)
+        
         if len(venues_s) == 0:
-            print(f"Nenhuma venue passada")
-            return render_template("search_venues.html")
-
-        global db
+            flash("Please provide a valid venue.", "info")
+            return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
+            
         in_set_conf = set()
         s = ''
         for key in db.index_to_journalname:
@@ -32,7 +54,8 @@ def search():
 
         if len(s) == 0:
             print(f"Nenhum identificado")
-            return render_template("search_venues.html")
+            flash("Please provide a valid venue.", "error")
+            return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
 
         parsed = Params(request.form["in_name"], 'union', './data', request.form["function"], len(db.distance))
         
@@ -41,38 +64,39 @@ def search():
         c, parsed.iteration = parsed.cf.find_cluster(0)
         if parsed.iteration == len(parsed.cf.children):
             print(f"Nenhum cluster achado")
-            return render_template("search_venues.html")
+            flash("No cluster found", "error")
+            return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
 
         parsed.cluster = parsed.cf.labels_sets[c]
         
         session["mode"] = "union"
         session["in_name"] = request.form["in_name"]
         session["function"] = request.form["function"]
-        session["old_cluster"] = list(parsed.old_cluster)
-        session["cluster"] = list(parsed.cluster)
         session["iteration"] = parsed.iteration
         session["in_set_conf"] = list(in_set_conf)
+        session.modified = True
+
+        for key in session:
+            print(key, session[key])
 
         return redirect(url_for("listar_conferencias", next="0"))
     else:
-        return render_template("search_venues.html")
+        return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
 
 @app.route("/venues<next>", methods=["POST", "GET"])
 def listar_conferencias(next):
-    if "cluster" not in session:
+    if "iteration" not in session:
         return redirect(url_for("search"))
         
     global db
     parsed = Params(session["in_name"], session["mode"], './data', session["function"], len(db.distance), session["iteration"], 
-                    db.children[session["function"]], session["old_cluster"], session["cluster"], session["in_set_conf"])
+                    db.children[session["function"]], session["in_set_conf"])
     if request.method == "POST" or next == "1":
         parsed.old_cluster = parsed.cluster
         c, parsed.iteration = parsed.cf.find_cluster(parsed.iteration+1)
         if parsed.iteration < len(parsed.cf.children):
             parsed.cluster = parsed.cf.labels_sets[c]
-
-        session["old_cluster"] = list(parsed.old_cluster)
-        session["cluster"] = list(parsed.cluster)
+            
         session["iteration"] = parsed.iteration
             
     i = 0
@@ -91,12 +115,12 @@ def listar_conferencias(next):
 
 @app.route("/frequency")
 def listar_frequencia():
-    if "cluster" not in session:
+    if "iteration" not in session:
         return redirect(url_for("search"))
 
     global db
     parsed = Params(session["in_name"], session["mode"], './data', session["function"], len(db.distance), session["iteration"], 
-                    db.children[session["function"]], session["old_cluster"], session["cluster"], session["in_set_conf"])
+                    db.children[session["function"]], session["in_set_conf"])
     
     sentences = []
     for vi in parsed.cluster:
@@ -107,15 +131,16 @@ def listar_frequencia():
 
 @app.route("/graph")
 def show_graph():
-    if "cluster" not in session:
+    if "iteration" not in session:
         return redirect(url_for("search"))
-
-    if len(session["cluster"]) <= 2 or len(session["cluster"]) >= 15:
-        return redirect(url_for("listar_conferencias", next="0"))
 
     global db
     parsed = Params(session["in_name"], session["mode"], './data', session["function"], len(db.distance), session["iteration"], 
-                    db.children[session["function"]], session["old_cluster"], session["cluster"], session["in_set_conf"])
+                    db.children[session["function"]], session["in_set_conf"])
+
+    if len(parsed.cluster) <= 2 or len(parsed.cluster) >= 15:
+        flash("In order to show the graph, the cluster must have size more than 2 and less than 15", "error")
+        return redirect(url_for("listar_conferencias", next="0"))
     
     g = nx.Graph()
 
@@ -190,7 +215,16 @@ def show_graph():
         
     return render_template("show_graph.html", src=filename, new=new_cluster, old=old_cluster_l, tam_l=len(parsed.cluster))
 
+@app.route("/clean")
+def clean():
+    remove_l = []
+    for key in session:
+        remove_l.append(key)
+    for key in remove_l:
+        session.pop(key, None)
+    return redirect(url_for("search"))
+
 def run():
-    app.run(debug=False)
+    app.run(debug=True)
 
 # run()

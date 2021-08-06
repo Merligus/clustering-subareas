@@ -43,9 +43,16 @@ class Data:
         with open(f'{dir}/nauthors{in_name}.pickle', 'rb') as handle:
             self.nauthors = pickle.load(handle)
 
+        self.journal_names_list = []
+        with open(f'{dir}/journal_names.txt') as fr:
+            for line in fr:
+                final_ind = line.find(':')
+                if line[:final_ind] in self.journals:
+                    self.journal_names_list.append((line[:final_ind], line[final_ind+1:-1]))
+
 class Params:
     def __init__(self, in_name, mode, dir, function, n_samples, iteration=-1, 
-                 children=[], old_cluster=[], cluster=[], in_set_conf=[0]):
+                 children=[], in_set_conf=[0]):
         
         self.in_name = in_name
         if self.in_name != '-':
@@ -56,16 +63,19 @@ class Params:
         self.dir = dir
         self.function = function
         
-        self.old_cluster = set(old_cluster)
-        self.cluster = set(cluster)
         self.cf = ClusterFinder(children, n_samples, set(in_set_conf), [])
         self.iteration = iteration
+        self.old_cluster = set(in_set_conf)
         
         if self.iteration >= 0:
-            _, aux_iteration = self.cf.find_cluster(0)
+            c, aux_iteration = self.cf.find_cluster(0)
+            self.cluster = self.cf.labels_sets[c]
             while aux_iteration != self.iteration:
-                _, aux_iteration = self.cf.find_cluster(aux_iteration+1)
-                if aux_iteration == len(self.cf.children):
+                self.old_cluster = self.cluster
+                c, aux_iteration = self.cf.find_cluster(aux_iteration+1)
+                if self.iteration < len(self.cf.children):
+                    self.cluster = self.cf.labels_sets[c]
+                elif aux_iteration == len(self.cf.children):
                     print(f"Nenhum cluster achado")
 
         print(25*'*', 'ARGS', 25*'*')
