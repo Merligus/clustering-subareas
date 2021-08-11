@@ -2,7 +2,7 @@
 
 ### Git LFS
 
-    Instalar o [Git LFS](https://github.com/git-lfs/git-lfs/wiki/Installation)
+Instalar o [Git LFS](https://github.com/git-lfs/git-lfs/wiki/Installation)
 
 ### Instalação
 
