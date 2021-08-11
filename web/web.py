@@ -234,4 +234,4 @@ def clean():
 def run():
     app.run(debug=True)
 
-# run()
+run()
