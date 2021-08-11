@@ -1,5 +1,9 @@
 ## Projeto de mestrado de clusterização das subáreas da computação
 
+### Git LFS
+
+    Instalar o [Git LFS](https://github.com/git-lfs/git-lfs/wiki/Installation)
+
 ### Instalação
 
 1. Clonar repositório
