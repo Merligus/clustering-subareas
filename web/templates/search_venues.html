@@ -14,12 +14,12 @@
 
     <hr class="my-4">
 
-    <form action="#" method="post">
+    <form action="#" method="post" name="formulario">
         <div class="form-group row">
             <label for="in_name" class="col-sm-2 col-form-label">Pre process</label>
             <div class="col-sm-10">
                 <select id="in_name" class="form-control" name="in_name">
-                    <option value="2010_only_journals" selected>Only journals from 2010</option>
+                    <option value="2010_only_journals">Only journals from 2010</option>
                     <option value="2010_cut0.2">Cut 20% of small conferences and journals from 2010</option>
                     <option value="-">None</option>
                 </select>
@@ -30,7 +30,7 @@
             <label for="function" class="col-sm-2 col-form-label">Function</label>
             <div class="col-sm-10">
                 <select id="function" class="form-control" name="function">
-                    <option value="agglomerative" selected>Agglomerative</option>
+                    <option value="agglomerative">Agglomerative</option>
                     <option value="multilevel">Multilevel</option>
                 </select>
             </div>
@@ -70,6 +70,32 @@
         </div>
 
         <script>
+            var in_name = document.getElementById("in_name");
+            for(i = 0; i < in_name.options.length; i++)
+            {
+                if(in_name.options[i].value == '{{in_name_}}')
+                {
+                    break;
+                }
+            }
+            in_name.options.selectedIndex = i;
+            in_name.addEventListener("change",
+                function()
+                {
+                    document.formulario.submit();
+                }
+            )
+
+            var function_var = document.getElementById("function");
+            for(i = 0; i < function_var.options.length; i++)
+            {
+                if(function_var.options[i].value == '{{function_}}')
+                {
+                    break;
+                }
+            }
+            function_var.options.selectedIndex = i;
+
             var text = document.getElementById("venue");
             div = document.getElementById("dropdownVenues");
             a = div.getElementsByTagName("button");

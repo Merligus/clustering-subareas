@@ -30,16 +30,37 @@ def search():
     if "selected" not in session:
         session["selected"] = []
         session.modified = True
+    
+    if "in_name" not in session:
+        session["in_name"] = "2010_only_journals"
+        session.modified = True
+    
+    if "function" not in session:
+        session["function"] = "agglomerative"
+        session.modified = True
+
+    if request.method == "POST" and "in_name" in request.form:
+        session["in_name"] = request.form["in_name"]
+        session.modified = True
+
+    if request.method == "POST" and "function" in request.form:
+        session["function"] = request.form["function"]
+        session.modified = True
+    
+    new_in_name = f'_{session["in_name"]}'
+    print(f'{db.in_name} vs {new_in_name}')
+    if (db.in_name != new_in_name):
+        db = Data(new_in_name, "union", "./data")
 
     if request.method == "POST" and "reset" in request.form:
         session["selected"] = []
         session.modified = True
-        return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
+        return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"], in_name_=session["in_name"], function_=session["function"])
     elif request.method == "POST" and "sel" in request.form:
         if request.form["sel"] not in session["selected"]:
             session["selected"].append(request.form["sel"])
             session.modified = True
-        return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
+        return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"], in_name_=session["in_name"], function_=session["function"])
     elif request.method == "POST" and "search" in request.form:
         selected_j = []
         for journal_selected in session["selected"]:
@@ -50,7 +71,7 @@ def search():
         
         if len(venues_s) == 0:
             flash("Please provide a valid venue.", "info")
-            return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
+            return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"], in_name_=session["in_name"], function_=session["function"])
             
         in_set_conf = set()
         s = ''
@@ -62,7 +83,7 @@ def search():
         if len(s) == 0:
             print(f"Nenhum identificado")
             flash("Please provide a valid venue.", "error")
-            return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
+            return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"], in_name_=session["in_name"], function_=session["function"])
 
         parsed = Params(request.form["in_name"], 'union', './data', request.form["function"], len(db.distance))
         
@@ -72,7 +93,7 @@ def search():
         if parsed.iteration == len(parsed.cf.children):
             print(f"Nenhum cluster achado")
             flash("No cluster found", "error")
-            return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
+            return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"], in_name_=session["in_name"], function_=session["function"])
 
         parsed.cluster = parsed.cf.labels_sets[c]
         
@@ -88,7 +109,7 @@ def search():
 
         return redirect(url_for("listar_conferencias", next="0"))
     else:
-        return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"])
+        return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"], in_name_=session["in_name"], function_=session["function"])
 
 @app.route("/venues<next>", methods=["POST", "GET"])
 def listar_conferencias(next):

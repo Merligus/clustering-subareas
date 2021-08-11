@@ -4,6 +4,7 @@ from algoritmos.finder import ClusterFinder
 
 class Data:
     def __init__(self, in_name, mode, dir):
+        self.in_name = in_name
         self.children = {}
         for function in ["agglomerative", "multilevel"]:
             filename = f"{dir}/children_{function}_" + mode + in_name
