@@ -19,12 +19,10 @@ app.config.from_object(__name__)
 app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 Session(app)
 CORS(app)
-db = Data("_2010_only_journals", "union", "./data")
 
 @app.route("/", methods=["POST", "GET"])
 @app.route("/search", methods=["POST", "GET"])
 def search():
-    global db
     if "selected" not in session:
         session["selected"] = []
         session.modified = True
@@ -45,9 +43,7 @@ def search():
         session["function"] = request.form["function"]
         session.modified = True
     
-    new_in_name = f'_{session["in_name"]}'
-    if (db.in_name != new_in_name):
-        db = Data(new_in_name, "union", "./data")
+    db = Data(session["in_name"], "union", "./data")
 
     if request.method == "POST" and "reset" in request.form:
         session["selected"] = []
@@ -113,7 +109,7 @@ def listar_conferencias(next):
     if "iteration" not in session:
         return redirect(url_for("search"))
         
-    global db
+    db = Data(session["in_name"], "union", "./data")
     parsed = Params(session["in_name"], session["mode"], './data', session["function"], len(db.distance), session["iteration"], 
                     db.children[session["function"]], session["in_set_conf"])
     if request.method == "POST" or next == "1":
@@ -143,7 +139,7 @@ def listar_frequencia():
     if "iteration" not in session:
         return redirect(url_for("search"))
 
-    global db
+    db = Data(session["in_name"], "union", "./data")
     parsed = Params(session["in_name"], session["mode"], './data', session["function"], len(db.distance), session["iteration"], 
                     db.children[session["function"]], session["in_set_conf"])
     
@@ -159,7 +155,7 @@ def show_graph():
     if "iteration" not in session:
         return redirect(url_for("search"))
 
-    global db
+    db = Data(session["in_name"], "union", "./data")
     parsed = Params(session["in_name"], session["mode"], './data', session["function"], len(db.distance), session["iteration"], 
                     db.children[session["function"]], session["in_set_conf"])
 

@@ -5,26 +5,27 @@ from algoritmos.finder import ClusterFinder
 
 class Data:
     def __init__(self, in_name, mode, dir):
-        self.in_name = in_name
+        print("Load data")
+        if in_name != '-':
+            self.in_name = "_" + in_name
+        else:
+            self.in_name = ''
         self.children = {}
         for function in ["agglomerative", "multilevel"]:
-            filename = f"{dir}/children_{function}_" + mode + in_name
+            filename = f"{dir}/children_{function}_" + mode + self.in_name
             with lzma.open(f'{filename}.xz', "rb") as f:
                 self.children[function] = pickle.load(f)
 
         filename = f"graph_nao_direcionado{mode}"
         data = np.load(f'{dir}/{filename}.npz')
-        self.adj_mat = data[filename + in_name]
+        self.adj_mat = data[filename + self.in_name]
         del data
         self.distance = np.nanmin(self.adj_mat) + np.nanmax(self.adj_mat) - self.adj_mat
 
-        with lzma.open(f'{dir}/index_to_journalname_{mode}{in_name}.xz', 'rb') as handle:
+        with lzma.open(f'{dir}/index_to_journalname_{mode}{self.in_name}.xz', 'rb') as handle:
             self.index_to_journalname = pickle.load(handle)
 
-        with lzma.open(f'{dir}/index_to_journal_complete_name{in_name}.xz', 'rb') as handle:
-            self.index_to_journal_complete_name = pickle.load(handle)
-
-        # with lzma.open(f'{dir}/journals_dict{in_name}.xz', 'rb') as handle:
+        # with lzma.open(f'{dir}/journals_dict{self.in_name}.xz', 'rb') as handle:
         #     self.journals = pickle.load(handle)
 
         # self.index_to_journal_complete_name = {}
@@ -40,10 +41,13 @@ class Data:
         #         suff += " -- " + self.journals[journal]['journal_name_rough']
         #     self.index_to_journal_complete_name[v] = journal + ':' + suff
         
-        # with lzma.open(f'{dir}/index_to_journal_complete_name{in_name}.xz', 'wb') as f:
+        # with lzma.open(f'{dir}/index_to_journal_complete_name{self.in_name}.xz', 'wb') as f:
         #     pickle.dump(self.index_to_journal_complete_name, f)
 
-        with lzma.open(f'{dir}/nauthors{in_name}.xz', 'rb') as handle:
+        with lzma.open(f'{dir}/index_to_journal_complete_name{self.in_name}.xz', 'rb') as handle:
+            self.index_to_journal_complete_name = pickle.load(handle)
+
+        with lzma.open(f'{dir}/nauthors{self.in_name}.xz', 'rb') as handle:
             self.nauthors = pickle.load(handle)
 
         # self.journal_names_list = []
@@ -52,10 +56,10 @@ class Data:
         #         final_ind = line.find(':')
         #         if line[:final_ind] in self.journals:
         #             self.journal_names_list.append((line[:final_ind], line[final_ind+1:-1]))
-        # with lzma.open(f'{dir}/journal_names_list{in_name}.xz', 'wb') as f:
+        # with lzma.open(f'{dir}/journal_names_list{self.in_name}.xz', 'wb') as f:
         #     pickle.dump(self.journal_names_list, f)
 
-        with lzma.open(f'{dir}/journal_names_list{in_name}.xz', 'rb') as handle:
+        with lzma.open(f'{dir}/journal_names_list{self.in_name}.xz', 'rb') as handle:
             self.journal_names_list = pickle.load(handle)
 
 class Params:

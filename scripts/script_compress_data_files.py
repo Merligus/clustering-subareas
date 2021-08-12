@@ -9,7 +9,7 @@ import lzma
 import pickle
 import brotli
 
-path = "data/"
+path = "data/not_compressed/"
 data = {}
 onlyfiles = [f for f in listdir(path) if isfile(join(path, f))]
 for filename in onlyfiles:
@@ -17,9 +17,8 @@ for filename in onlyfiles:
     ext = filename[p_index+1:]
     if ext == "npy":
         filename_no_ext = filename[:p_index]
-        if filename_no_ext != "graph_nao_direcionadounion":
-            with open(f'{path}/{filename}', "rb") as f:
-                data[filename_no_ext] = np.load(f)
+        with open(f'{path}/{filename}', "rb") as f:
+            data[filename_no_ext] = np.load(f)
 
     # elif ext == "pickle":
     #     with open(f'{path}/{filename}', 'rb') as handle:
