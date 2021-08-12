@@ -19,8 +19,8 @@ app.config.from_object(__name__)
 app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=False)
 SERVER_NAME = '192.168.0.6:5000'
 SESSION_COOKIE_DOMAIN = '192.168.0.6:5000'
-app.config['SERVER_NAME'] = SERVER_NAME
-app.config['SESSION_COOKIE_DOMAIN'] = SESSION_COOKIE_DOMAIN
+# app.config['SERVER_NAME'] = SERVER_NAME
+# app.config['SESSION_COOKIE_DOMAIN'] = SESSION_COOKIE_DOMAIN
 Session(app)
 CORS(app)
 db = Data("_2010_only_journals", "union", "./data")
