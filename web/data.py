@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+import lzma
 from algoritmos.finder import ClusterFinder
 
 class Data:
@@ -8,18 +9,19 @@ class Data:
         self.children = {}
         for function in ["agglomerative", "multilevel"]:
             filename = f"{dir}/children_{function}_" + mode + in_name
-            with open(filename + '.pickle', 'rb') as f:
+            with lzma.open(f'{filename}.xz', "rb") as f:
                 self.children[function] = pickle.load(f)
 
-        filename = f"{dir}/graph_nao_direcionado" + mode + in_name + '.npy'
-        with open(filename, "rb") as f:
-            self.adj_mat = np.load(f)
+        filename = f"graph_nao_direcionado{mode}"
+        data = np.load(f'{dir}/{filename}.npz')
+        self.adj_mat = data[filename + in_name]
+        del data
         self.distance = np.nanmin(self.adj_mat) + np.nanmax(self.adj_mat) - self.adj_mat
 
-        with open(f'{dir}/index_to_journalname_{mode}{in_name}.pickle', 'rb') as handle:
+        with lzma.open(f'{dir}/index_to_journalname_{mode}{in_name}.xz', 'rb') as handle:
             self.index_to_journalname = pickle.load(handle)
 
-        with open(f'{dir}/journals_dict{in_name}.pickle', 'rb') as handle:
+        with lzma.open(f'{dir}/journals_dict{in_name}.xz', 'rb') as handle:
             self.journals = pickle.load(handle)
 
         self.index_to_journal_complete_name = {}
@@ -35,13 +37,7 @@ class Data:
                 suff += " -- " + self.journals[journal]['journal_name_rough']
             self.index_to_journal_complete_name[v] = journal + ':' + suff
 
-        with open(f'{dir}/index_to_journal_complete_name{in_name}.pickle', 'wb') as handle:
-            pickle.dump(self.index_to_journal_complete_name, handle, protocol=2)
-
-        with open(f'{dir}/index_to_journal_complete_name{in_name}.pickle', 'rb') as handle:
-            self.index_to_journal_complete_name = pickle.load(handle)
-
-        with open(f'{dir}/nauthors{in_name}.pickle', 'rb') as handle:
+        with lzma.open(f'{dir}/nauthors{in_name}.xz', 'rb') as handle:
             self.nauthors = pickle.load(handle)
 
         self.journal_names_list = []
