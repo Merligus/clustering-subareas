@@ -20,7 +20,6 @@ app.config.from_object(__name__)
 app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 Session(app)
 CORS(app)
-
 db = Data("_2010_only_journals", "union", "./data")
 
 @app.route("/", methods=["POST", "GET"])
