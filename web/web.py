@@ -16,11 +16,7 @@ SESSION_TYPE = 'filesystem'
 app.secret_key = SECRET_KEY
 app.session_type = SESSION_TYPE
 app.config.from_object(__name__)
-app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=False)
-SERVER_NAME = '192.168.0.6:5000'
-SESSION_COOKIE_DOMAIN = '192.168.0.6:5000'
-# app.config['SERVER_NAME'] = SERVER_NAME
-# app.config['SESSION_COOKIE_DOMAIN'] = SESSION_COOKIE_DOMAIN
+app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 Session(app)
 CORS(app)
 db = Data("_2010_only_journals", "union", "./data")
@@ -50,7 +46,6 @@ def search():
         session.modified = True
     
     new_in_name = f'_{session["in_name"]}'
-    print(f'{db.in_name} vs {new_in_name}')
     if (db.in_name != new_in_name):
         db = Data(new_in_name, "union", "./data")
 
