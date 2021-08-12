@@ -2,7 +2,6 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from numpy.lib.function_base import _select_dispatcher
 from algoritmos.smacof import MDS
 from .data import Params, Data
 import os
@@ -12,12 +11,16 @@ from flask_session import Session
 from flask_cors import CORS
 
 app = Flask(__name__)
-app.secret_key = "key para session"
-app.session_type = "filesystem"
 SECRET_KEY = "key para session"
 SESSION_TYPE = 'filesystem'
+app.secret_key = SECRET_KEY
+app.session_type = SESSION_TYPE
 app.config.from_object(__name__)
-app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
+app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=False)
+SERVER_NAME = '192.168.0.6:5000'
+SESSION_COOKIE_DOMAIN = '192.168.0.6:5000'
+app.config['SERVER_NAME'] = SERVER_NAME
+app.config['SESSION_COOKIE_DOMAIN'] = SESSION_COOKIE_DOMAIN
 Session(app)
 CORS(app)
 db = Data("_2010_only_journals", "union", "./data")
