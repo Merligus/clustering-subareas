@@ -255,4 +255,4 @@ def clean():
 def run():
     app.run(debug=False)
 
-# run()
+run()
