@@ -1,9 +1,5 @@
 ## Projeto de mestrado de clusterização das subáreas da computação
 
-### Git LFS
-
-Instalar o [Git LFS](https://github.com/git-lfs/git-lfs/wiki/Installation)
-
 ### Instalação
 
 1. Clonar repositório
@@ -27,3 +23,7 @@ Instalar o [Git LFS](https://github.com/git-lfs/git-lfs/wiki/Installation)
     ```sh
     python3 -m web.web
     ```
+
+### Dados
+
+Baixar os [dados](https://drive.google.com/drive/folders/1o9CFw8kaRpTW1oUa4SBXMNNRt5XwOXBE?usp=sharing) necessários para o algoritmo. E colocar os arquivos em clustering_subareas/data/* .
