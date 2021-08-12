@@ -21,31 +21,42 @@ class Data:
         with lzma.open(f'{dir}/index_to_journalname_{mode}{in_name}.xz', 'rb') as handle:
             self.index_to_journalname = pickle.load(handle)
 
-        with lzma.open(f'{dir}/journals_dict{in_name}.xz', 'rb') as handle:
-            self.journals = pickle.load(handle)
+        with lzma.open(f'{dir}/index_to_journal_complete_name{in_name}.xz', 'rb') as handle:
+            self.index_to_journal_complete_name = pickle.load(handle)
 
-        self.index_to_journal_complete_name = {}
-        for v in self.index_to_journalname:
-            journal = self.index_to_journalname[v]
-            if journal not in self.journals:
-                print(journal)
-                continue
-            suff = ""
-            if len(self.journals[journal]['journal_name']) > 0:
-                suff += " " + self.journals[journal]['journal_name']
-            if 'journal_name_rough' in self.journals[journal]:
-                suff += " -- " + self.journals[journal]['journal_name_rough']
-            self.index_to_journal_complete_name[v] = journal + ':' + suff
+        # with lzma.open(f'{dir}/journals_dict{in_name}.xz', 'rb') as handle:
+        #     self.journals = pickle.load(handle)
+
+        # self.index_to_journal_complete_name = {}
+        # for v in self.index_to_journalname:
+        #     journal = self.index_to_journalname[v]
+        #     if journal not in self.journals:
+        #         print(journal)
+        #         continue
+        #     suff = ""
+        #     if len(self.journals[journal]['journal_name']) > 0:
+        #         suff += " " + self.journals[journal]['journal_name']
+        #     if 'journal_name_rough' in self.journals[journal]:
+        #         suff += " -- " + self.journals[journal]['journal_name_rough']
+        #     self.index_to_journal_complete_name[v] = journal + ':' + suff
+        
+        # with lzma.open(f'{dir}/index_to_journal_complete_name{in_name}.xz', 'wb') as f:
+        #     pickle.dump(self.index_to_journal_complete_name, f)
 
         with lzma.open(f'{dir}/nauthors{in_name}.xz', 'rb') as handle:
             self.nauthors = pickle.load(handle)
 
-        self.journal_names_list = []
-        with open(f'{dir}/journal_names.txt') as fr:
-            for line in fr:
-                final_ind = line.find(':')
-                if line[:final_ind] in self.journals:
-                    self.journal_names_list.append((line[:final_ind], line[final_ind+1:-1]))
+        # self.journal_names_list = []
+        # with open(f'{dir}/journal_names.txt') as fr:
+        #     for line in fr:
+        #         final_ind = line.find(':')
+        #         if line[:final_ind] in self.journals:
+        #             self.journal_names_list.append((line[:final_ind], line[final_ind+1:-1]))
+        # with lzma.open(f'{dir}/journal_names_list{in_name}.xz', 'wb') as f:
+        #     pickle.dump(self.journal_names_list, f)
+
+        with lzma.open(f'{dir}/journal_names_list{in_name}.xz', 'rb') as handle:
+            self.journal_names_list = pickle.load(handle)
 
 class Params:
     def __init__(self, in_name, mode, dir, function, n_samples, iteration=-1, 
