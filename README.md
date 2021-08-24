@@ -1,5 +1,7 @@
 ## Projeto de mestrado de clusterização das subáreas da computação
 
+A consulta pode ser feita no site [merligus.pythonanywhere.com](https://merligus.pythonanywhere.com).
+
 ### Instalação
 
 1. Clonar repositório
