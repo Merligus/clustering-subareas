@@ -23,6 +23,10 @@ else:
     only_journals = bool(int(sys.argv[1]))
     cut = float(sys.argv[2]) # [0, 1] porcentagem da ceifada nas conferencias
     year = int(sys.argv[3])
+
+if only_journals and cut > 0:
+    print("Cut > 0 must have only_journals = False")
+    exit()
 test = False
 test_name = ""
 if test:

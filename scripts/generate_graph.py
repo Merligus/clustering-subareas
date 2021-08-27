@@ -38,6 +38,9 @@ else:
     cut = float(sys.argv[2])
     year = int(sys.argv[3])
     mode = sys.argv[4]
+if only_journals and cut > 0:
+    print("Cut > 0 must have only_journals = False")
+    exit()
 test = False
 test_name = ""
 if test:

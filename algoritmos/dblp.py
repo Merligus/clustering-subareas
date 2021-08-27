@@ -112,10 +112,10 @@ def show_communities_length(labels):
 
 print('STARTING')
 
-if(len(sys.argv) < 8):
+if(len(sys.argv) < 10):
     print("Falta parametros")
     exit()
-elif(len(sys.argv) > 8):
+elif(len(sys.argv) > 10):
     print("Muitos parametros")
     exit()
 else:
@@ -124,11 +124,21 @@ else:
     function = sys.argv[3] # multilevel, fastgreedy, agglomerative, reciprocal, . . .
     TIMES = int(sys.argv[4])
     n_components = int(sys.argv[5])
-    if sys.argv[6] != '-':
-        in_name = '_' + sys.argv[6]
-    else:
-        in_name = ''
-    nan_sub = bool(int(sys.argv[7])) # True -> adj_mat[==0] = nan
+    nan_sub = bool(int(sys.argv[6])) # True -> adj_mat[==0] = nan
+    only_journals = bool(int(sys.argv[7]))
+    cut = float(sys.argv[8])
+    year = int(sys.argv[9])
+    
+if only_journals and cut > 0:
+    print("Cut > 0 must have only_journals = False")
+    exit()
+in_name = ""
+if year > 0:
+    in_name += '_' + str(year)
+if only_journals:
+    in_name += '_only_journals'
+if cut > 0:
+    in_name += f'_cut{cut:.3}'
 
 RANDOM_STATE = 5
 random.seed(RANDOM_STATE)
@@ -588,18 +598,18 @@ elif opcao_grafo != 2:
             model.plot_dendrogram(truncate_mode='lastp', p=p, distance_sort=True)
             plt.xlabel("Number of points in node (or index of point if no parenthesis).")
             plt.savefig(f'../data/dendogram{in_name}_p{p}_mode{mode}.pdf')
-        else:
-            # save in a formatted file
-            VC = show_communities_length(model.labels_)
-            labels_agg = [0]*adj_mat.shape[0]
-            for comm_ind, tuple in enumerate(VC):
-                ind, comm = tuple[0], tuple[1]
-                for v in comm:
-                    labels_agg[v] = comm_ind
 
-            file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
-            info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, distance)
-            file_out.close()
+        # save in a formatted file
+        VC = show_communities_length(model.labels_)
+        labels_agg = [0]*adj_mat.shape[0]
+        for comm_ind, tuple in enumerate(VC):
+            ind, comm = tuple[0], tuple[1]
+            for v in comm:
+                labels_agg[v] = comm_ind
+
+        file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
+        info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, distance)
+        file_out.close()
 
     print(50*'-')
     print(f'Fim {function}')

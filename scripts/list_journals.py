@@ -1,21 +1,29 @@
 import pickle
 
-# quando eh o MDS
 comb = []
-for w_o in ['normal', '1or0', 'd-1', 'd-2']:
-    for n_comps in [2, 3, 4, 5, 6, 7]:
-        for n_clus in [20, 40]:
-            comb.append((w_o, n_comps, n_clus))
+for cut in [0, 0.2]:
+    for only_journals in [0, 1]:
+        for year in [0, 2010]:
+            if only_journals and cut > 0:
+                continue
+            in_name = ""
+            if year > 0:
+                in_name += '_' + str(year)
+            if only_journals:
+                in_name += '_only_journals'
+            if cut > 0:
+                in_name += f'_cut{cut:.3}'
+            comb.append(in_name)
 
-for in_name in ['']:
+for in_name in comb:
     print('ABRINDO ARQUIVO')
-    with open(f'../data/journals_dict_{in_name}.pickle', 'rb') as handle:
+    with open(f'../data/journals_dict{in_name}.pickle', 'rb') as handle:
         journals = pickle.load(handle)
     print('ARQUIVO ABERTO')
-    for function in ['multilevel']:
-        for rec in [3]:
-            fin = open(f'../data/{function}_union_rec{rec}_{in_name}.txt')
-            fout = open(f'../data/formatted_output/{function}_union_rec{rec}_{in_name}.txt', 'w')
+    for function, rec in [('multilevel', 4)]: #, ('agglomerative', 0)]:
+        for mode in ['union', 'max', 'mean']:
+            fin = open(f'../data/{function}_{mode}_rec{rec}{in_name}.txt')
+            fout = open(f'../data/formatted_output/{function}_{mode}_rec{rec}{in_name}.txt', 'w')
             for line in fin:
                 if line[0] == '\t':
                     id = line.find(':')
@@ -27,8 +35,6 @@ for in_name in ['']:
                         fout.write('\t' + line[1:-1] + ':' + journals[journal]['journal_name'] + '\n')
                     elif 'journal_name_rough' in journals[journal]:
                         fout.write('\t' + line[1:-1] + ':' + journals[journal]['journal_name_rough'] + '\n')
-                    # elif 'journal_name' in journals[journal]:
-                    #     fout.write('\t' + line[1:-1] + ':' + journals[journal]['journal_name'] + '\n')
                     else:
                         fout.write('\t' + line[1:-1] + ':' + journal.upper() + '\n')
                 else:
