@@ -90,27 +90,20 @@ class ClusterFinder:
     # n = top n
     def show_top(self, sentences, n=10):
         length = len(sentences)
-        word_frequence = defaultdict(list)
         frequent = defaultdict(int)
-        for i1, s1 in enumerate(sentences[:-1]):
+        for s1 in sentences:
             token1 = nltk.word_tokenize(s1)
             set_token1 = set(token1)
-            for i2, s2 in enumerate(sentences[i1+1:]):
-                token2 = nltk.word_tokenize(s2)
-                set_token2 = set(token2)
-                set_r = set_token1.intersection(set_token2)
-                for word in set_r:
-                    if word not in string.punctuation:
-                        if word not in self.bad_words:
-                            if not word.isnumeric():
-                                frequent[word] += 1
-                                word_frequence[word].append(i1)
-                                word_frequence[word].append(i1+i2+1)
+            for t in set_token1:
+                if t not in string.punctuation:
+                    if t not in self.bad_words:
+                        if not t.isnumeric():
+                            frequent[t] += 1
         top = sorted(frequent.items(), key=lambda item: item[1], reverse=True)[:n]
         values = []
         for word, _ in top:
-            values.append((word, f'{len(set(word_frequence[word]))/length:.0%}'))
-            print(f'\t{word} {len(set(word_frequence[word]))/length:.0%}')
+            values.append((word, f'{frequent[word]/length:.0%}'))
+            print(f'\t{word} {frequent[word]/length:.0%}')
         return values
 
 # parser = argparse.ArgumentParser()

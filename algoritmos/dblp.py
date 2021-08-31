@@ -434,12 +434,7 @@ if do_mds:
     del adj_mat
     np.fill_diagonal(distance, 0)
     
-    # eps for DBSCAN
-    eps = {0: {2: 0.00518, 3: 0.0148, 4: 0.0295, 5: 0.0535, 6: 0.0756, 7: 0.0946, 32: 0.2382, 64: 0.2778, 128: 0.3033},
-           1: {2: 0.0048, 3: 0.0141, 4: 0.0291, 5: 0.0524, 6: 0.0736, 7: 0.0933, 32: 0.2382, 64: 0.2778, 128: 0.3033},
-           2: {2: 0.00485, 3: 0.0139, 4: 0.028, 5: 0.0475, 6: 0.0676, 7: 0.0877, 32: 0.2382, 64: 0.2778, 128: 0.3033},
-           3: {2: 0.00404, 3: 0.0134, 4: 0.0301, 5: 0.0454, 6: 0.0685, 7: 0.089, 32: 0.2382, 64: 0.2778, 128: 0.3033}}
-    for w_o in ['d-2']:
+    for w_o in ['normal', '1or0', 'd-1', 'd-2']:
         for n_comps in [n_components]:
             embedders = [MDS(ndim=n_comps, weight_option=w_o, itmax=10000)]
             for embedding in embedders:
@@ -463,17 +458,7 @@ if do_mds:
                         continue
                 print(f'X transormed para {n_comps} dimensoes calculado')
 
-                # DBSCAN
-                # dbscan_c = DBSCAN(eps=eps[w_o][n_comps])
-                # dbscan_c.fit(X_transformed)
-                # print(f'MDS DBSCAN weights={w_o} eps={eps[w_o][n_comps]} n_components = {n_comps}')
-                # VC = show_communities_length(dbscan_c.labels_)
-
-                # file_out = open(f"../data/original_output/dbscan{test_name}_{n_comps}dim_{w_o}weights_{in_name}.txt", "w")
-                # info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                # file_out.close()
-
-                for n_clus in [20, 40, 60, 80, 100, 120, 140, 160, 180, 200]:
+                for n_clus in [200]:
                     # Clustering
                     # GMM
                     print(f'MDS GMM weights={w_o} n_clusters={n_clus} n_components = {n_comps}')
@@ -483,8 +468,7 @@ if do_mds:
                         print(f'{"converged" if gmm_c.converged_ else "did not converge"} with {gmm_c.n_iter_} iterations')
                         VC = show_communities_length(gmm_c.predict(X_transformed))
 
-                        # file_out = open(f'../data/gmm_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.txt', "w")
-                        file_out = open(f'../data/trash.txt', "w")
+                        file_out = open(f'../data/gmm_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.txt', "w")
                         info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
                         file_out.close()
                     except:
@@ -497,7 +481,7 @@ if do_mds:
                         k_means.fit(X_transformed)
                         VC = show_communities_length(k_means.labels_)
 
-                        file_out = open(f'../data/trash.txt', "w")
+                        file_out = open(f'../data/kmeans_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.txt', "w")
                         info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
                         file_out.close()
                     except:
@@ -515,7 +499,7 @@ if do_mds:
                         vbgmm_labels = vbgmm_c.predict(X_transformed)
                         VC = show_communities_length(vbgmm_labels)
 
-                        file_out = open(f'../data/trash.txt', "w")
+                        file_out = open(f'../data/vbgmm_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.txt', "w")
                         info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
                         file_out.close()
                     except:

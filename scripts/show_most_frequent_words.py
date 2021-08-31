@@ -5,25 +5,18 @@ import string
 # n = top n
 def show_top(sentences, frequent, bad_words, file, n=10):
     length = len(sentences)
-    word_frequence = defaultdict(list)
-    for i1, s1 in enumerate(sentences[:-1]):
+    for s1 in sentences:
         token1 = nltk.word_tokenize(s1)
         set_token1 = set(token1)
-        for i2, s2 in enumerate(sentences[i1+1:]):
-            token2 = nltk.word_tokenize(s2)
-            set_token2 = set(token2)
-            set_r = set_token1.intersection(set_token2)
-            for word in set_r:
-                if word not in string.punctuation:
-                    if word not in bad_words:
-                        if not word.isnumeric():
-                            frequent[word] += 1
-                            word_frequence[word].append(i1)
-                            word_frequence[word].append(i1+i2+1)
+        for t in set_token1:
+            if t not in string.punctuation:
+                if t not in bad_words:
+                    if not t.isnumeric():
+                        frequent[t] += 1
     top = sorted(frequent.items(), key=lambda item: item[1], reverse=True)[:n]
     for word, _ in top:
-        print(f'\t\t{word} {len(set(word_frequence[word]))/length:.0%}')
-        file.write(f'\t\t{word} {len(set(word_frequence[word]))/length:.0%}\n')
+        print(f'\t\t{word} {frequent[word]/length:.0%}')
+        file.write(f'\t\t{word} {frequent[word]/length:.0%}\n')
 
 bad_words = {'cambridge', 'cambridge', 'ca', 'california', 'jose', 'int', 'second', 'third', '4th', '5th', '6th', 
              '7th', '8th', '9th', '10th', 'san', 'information', 'first', 'va', '3rd', '2nd', 'de', '2010.', 'annual', 'systems', 'selected', 'revised', 'symposium', 'papers', 'acm',
@@ -33,13 +26,27 @@ bad_words = {'cambridge', 'cambridge', 'ca', 'california', 'jose', 'int', 'secon
              'january', 'february', 'march', 'may', 'april', 'june', 'july', 'august', 'october',
              'september', 'november', 'december', 'journal'}
 
-for in_name in ['']:
-    for function in ['reciprocal']:
-        for rec in [2]:
-            dir = "G:\\Mestrado\\BD\\data\\formatted_output\\"
-            # file_name = f'{function}_union_rec{rec}{in_name}.txt'
-            file_name = "gmm_reciprocal_union_d7_c100_weightsd-2.txt"
-            f_out = open(f'{dir}most_frequent_words\\mfw_{file_name}', 'w')
+comb = []
+for cut in [0, 0.2]:
+    for only_journals in [0, 1]:
+        for year in [0, 2010]:
+            if only_journals and cut > 0:
+                continue
+            in_name = ""
+            if year > 0:
+                in_name += '_' + str(year)
+            if only_journals:
+                in_name += '_only_journals'
+            if cut > 0:
+                in_name += f'_cut{cut:.3}'
+            comb.append(in_name)
+
+for in_name in comb:
+    for function, rec in [('multilevel', 3)]:
+        for mode in ['max', 'union', 'mean']:
+            dir = "G:\\Mestrado\\BD\\data\\formatted_output\\definitivas\\"
+            file_name = f"{function}_{mode}_rec{rec}{in_name}.txt"
+            f_out = open(f'{dir}most_frequent_words\\mfw_{file_name}', 'w', encoding="utf-8")
 
             frequent = defaultdict(int)
             sentences = []

@@ -20,7 +20,7 @@ for in_name in comb:
     with open(f'../data/journals_dict{in_name}.pickle', 'rb') as handle:
         journals = pickle.load(handle)
     print('ARQUIVO ABERTO')
-    for function, rec in [('multilevel', 4)]: #, ('agglomerative', 0)]:
+    for function, rec in [('multilevel', 4), ('agglomerative', 0)]:
         for mode in ['union', 'max', 'mean']:
             fin = open(f'../data/{function}_{mode}_rec{rec}{in_name}.txt')
             fout = open(f'../data/formatted_output/{function}_{mode}_rec{rec}{in_name}.txt', 'w')

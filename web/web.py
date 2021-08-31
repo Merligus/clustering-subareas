@@ -43,7 +43,7 @@ def search():
         session["function"] = request.form["function"]
         session.modified = True
     
-    db = Data(session["in_name"], "union", "./data")
+    db = Data(session["in_name"], "mean", "./data")
 
     if request.method == "POST" and "reset" in request.form:
         session["selected"] = []
@@ -78,7 +78,7 @@ def search():
             flash("Please provide a valid venue.", "error")
             return render_template("search_venues.html", venues=db.journal_names_list, selected_l=session["selected"], in_name_=session["in_name"], function_=session["function"])
 
-        parsed = Params(request.form["in_name"], 'union', './data', request.form["function"], len(db.distance))
+        parsed = Params(request.form["in_name"], 'mean', './data', request.form["function"], len(db.distance))
         
         parsed.old_cluster = in_set_conf
         parsed.cf = ClusterFinder(db.children[request.form["function"]], len(db.distance), in_set_conf, [])
@@ -90,7 +90,7 @@ def search():
 
         parsed.cluster = parsed.cf.labels_sets[c]
         
-        session["mode"] = "union"
+        session["mode"] = "mean"
         session["in_name"] = request.form["in_name"]
         session["function"] = request.form["function"]
         session["iteration"] = parsed.iteration
@@ -109,7 +109,7 @@ def listar_conferencias(next):
     if "iteration" not in session:
         return redirect(url_for("search"))
         
-    db = Data(session["in_name"], "union", "./data")
+    db = Data(session["in_name"], "mean", "./data")
     parsed = Params(session["in_name"], session["mode"], './data', session["function"], len(db.distance), session["iteration"], 
                     db.children[session["function"]], session["in_set_conf"])
     if request.method == "POST" or next == "1":
@@ -139,7 +139,7 @@ def listar_frequencia():
     if "iteration" not in session:
         return redirect(url_for("search"))
 
-    db = Data(session["in_name"], "union", "./data")
+    db = Data(session["in_name"], "mean", "./data")
     parsed = Params(session["in_name"], session["mode"], './data', session["function"], len(db.distance), session["iteration"], 
                     db.children[session["function"]], session["in_set_conf"])
     
@@ -155,7 +155,7 @@ def show_graph():
     if "iteration" not in session:
         return redirect(url_for("search"))
 
-    db = Data(session["in_name"], "union", "./data")
+    db = Data(session["in_name"], "mean", "./data")
     parsed = Params(session["in_name"], session["mode"], './data', session["function"], len(db.distance), session["iteration"], 
                     db.children[session["function"]], session["in_set_conf"])
 
