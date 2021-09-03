@@ -6,6 +6,7 @@ import numpy as np
 import lzma
 import pickle
 
+chosen = {"graph_nao_direcionadomean_2010_cut0.2", "graph_nao_direcionadomean_2010_only_journals"}
 path_not_compressed = "../data/not_compressed/"
 path = "../data/"
 np_data = {}
@@ -16,8 +17,9 @@ for filename in onlyfiles:
     ext = filename[p_index+1:]
     if ext == "npy":
         filename_no_ext = filename[:p_index]
-        with open(f'{path_not_compressed}/{filename}', "rb") as f:
-            np_data[filename_no_ext] = np.load(f)
+        if filename_no_ext in chosen or True:
+            with open(f'{path_not_compressed}/{filename}', "rb") as f:
+                np_data[filename_no_ext] = np.load(f)
 
     elif ext == "pickle":
         with open(f'{path_not_compressed}/{filename}', 'rb') as handle:

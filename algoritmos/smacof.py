@@ -3,6 +3,8 @@ import numpy as np
 from numpy import linalg as LA
 from scipy.optimize import nnls
 
+from ctypes import *
+
 class MDS:
     def __init__(self, type="ratio", ndim = 2, weight_option = 'normal', verbose = False,
                      init = "torgerson", ties = "primary", relax = False, 
@@ -20,6 +22,9 @@ class MDS:
         self.eps = eps
         self.spline_degree = spline_degree
         self.spline_intKnots = spline_intKnots
+        
+        SO_FILE = "./c_functions.so"
+        self.c_functions = CDLL(SO_FILE)
     
     def mean_nan(self, diss):
         nan_numbers = np.add.reduce(np.isnan(diss), axis=(0, 1))
@@ -136,52 +141,26 @@ class MDS:
         return np.diag(r)-b
 
     def weightedMean(self, y, sumwvec, target, target_ind, w, w_ind, iord, ties, n, nties):
-        nprevties = 0
-        for k in range(nties):
-            sumwt = 0.
-            sumw = 0.
-            for l in range(ties[k]):
-                ind = iord[nprevties + l]
-                sumwt += w[w_ind[0][ind], w_ind[1][ind]]*target[target_ind[0][ind], target_ind[1][ind]]
-                sumw += w[w_ind][ind]
-            if sumw > 1e-10:
-                y[k] = sumwt / sumw
-            else:
-                y[k] = 0.
-            sumwvec[k] = sumw
-            nprevties += ties[k]
+        t_aux = target[target_ind]
+        w_aux = w[w_ind]
+        y = (c_double * nties)(*y)
+        sumwvec = (c_double * nties)(*sumwvec)
+        self.c_functions.weightedMean(y, 
+                                      sumwvec, 
+                                      t_aux.ctypes.data_as(c_void_p), 
+                                      w_aux.ctypes.data_as(c_void_p), 
+                                      iord.ctypes.data_as(c_void_p), 
+                                      ties.ctypes.data_as(c_void_p), 
+                                      c_long(n), 
+                                      c_long(nties))
+        return {"y": np.array(y[:]),
+                "sumwvec": np.array(sumwvec[:])}
     
     def wmonreg(self, disp_o, w, n):
-        disp = np.copy(disp_o)
-        lovbkh = 0
-        wovbkh = 0
-        luph = -1
-        for iup in range(1, n):
-            if disp[iup] < disp[iup - 1]:
-                sds = w[iup] * disp[iup]
-                sw = w[iup]
-                idown = iup
-                while True:
-                    idown -= 1
-                    if luph == idown:
-                        sds += wovbkh * disp[luph]
-                        sw += wovbkh
-                        idown = idown - lovbkh
-                    else:
-                        sds += w[idown] * disp[idown]
-                        sw += w[idown]
-                    trialv = sds / sw
-                    if idown == 0:
-                        break
-                    if disp[idown - 1] <= trialv:
-                        break
-                wovbkh = 0
-                for j in range(idown, iup+1):
-                    disp[j] = trialv
-                    wovbkh += w[j]
-                lovbkh = iup - idown
-                luph = iup
-        return disp
+        disp_o = (c_double * n)(*disp_o)
+        self.c_functions.wmonreg(disp_o, w.ctypes.data_as(c_void_p), c_long(n))
+        disp_o = np.array(disp_o[:])
+        return disp_o
 
     def transform(self, Target, x, w=None, normq=0):
         if type(w) == type(None):
@@ -202,7 +181,9 @@ class MDS:
 
         Target_indices = np.triu_indices_from(Target, k=1)
         w_indices = np.triu_indices_from(w, k=1)
-        self.weightedMean(y, w2, Target, Target_indices, w, w_indices, x['iord'], x['ties'], n, nties_act)
+        d = self.weightedMean(y, w2, Target, Target_indices, w, w_indices, x['iord'], x['ties'], n, nties_act)
+        y = d["y"]
+        w2 = d["sumwvec"]
         
         if n > x['n_nonmis'] and x['missing'] in {"single", "multiple"}:
             Result[x['iord_mis']] = y[x['nties_nonmis']: len(x['ties'])]
@@ -323,8 +304,8 @@ class MDS:
         #         d[i, j] = np.sqrt(np.sum(np.square(x[i,:] - x[j,:])))
         #         d[j, i] = d[i, j]
         d = np.sqrt(np.sum(np.square(x[combinations[0], :] - x[combinations[1], :]), axis=2))
-        # lb = np.divide(np.nansum(wgths*d*dhat), np.nansum(wgths*np.square(d)))
-        lb = np.nansum(wgths*d*dhat)/np.nansum(wgths*np.square(d))
+        lb = np.divide(np.nansum(wgths*d*dhat), np.nansum(wgths*np.square(d)))
+        # lb = np.nansum(wgths*d*dhat)/np.nansum(wgths*np.square(d))
         x = lb*x
         d = lb*d
 
@@ -389,6 +370,7 @@ class MDS:
                 'type': self.type}
 
 # with open("G:\Mestrado\BD\data\idiss.csv") as csvfile:
+# with open("../data/idiss.csv") as csvfile:
 #     spamreader = csv.reader(csvfile, delimiter=',')
 #     array = []
 #     for row in spamreader:
@@ -398,10 +380,11 @@ class MDS:
 #         array.append(line)
 #     idiss = np.array(array)
 
+# # print(idiss)
 # # idiss = np.ones((6480, 6480))
 # idiss[0, 1] = idiss[1, 0] = np.nan
 # idiss[3, 2] = idiss[2, 3] = np.nan
-# model = MDS(type = "interval", verbose=True).fit(idiss)
+# model = MDS(type = "interval", verbose=False).fit(idiss)
 # print(model['conf'])
 # [[ 0.70485799 -0.24628322]
 #  [ 0.49016144 -0.35819016]

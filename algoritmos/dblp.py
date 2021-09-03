@@ -436,7 +436,7 @@ if do_mds:
     
     for w_o in ['normal', '1or0', 'd-1', 'd-2']:
         for n_comps in [n_components]:
-            embedders = [MDS(ndim=n_comps, weight_option=w_o, itmax=10000)]
+            embedders = [MDS(ndim=n_comps, weight_option=w_o, verbose=False)]
             for embedding in embedders:
                 # Embedding
                 filename = f"../data/distance_embedded/X_transformed_{n_comps}dim_{w_o}weight_{function}function_{nan_sub}nan.npy"
@@ -445,17 +445,17 @@ if do_mds:
                     with open(filename, "rb") as f:
                         X_transformed = np.load(f)
                 else:
-                    try:
-                        mds_model = embedding.fit(distance) # shape = journals x n_components
-                        X_transformed = mds_model['conf']
-                        with open(filename, "wb") as f:
-                            np.save(f, X_transformed)
-                        print(f'Stress = {mds_model["stress"]} com {n_comps} componentes')
-                        del mds_model
-                    except:
-                        X_transformed = 0
-                        print(f'nao deu pra {n_comps} dimensoes')
-                        continue
+                    # try:
+                    mds_model = embedding.fit(distance) # shape = journals x n_components
+                    X_transformed = mds_model['conf']
+                    with open(filename, "wb") as f:
+                        np.save(f, X_transformed)
+                    print(f'Stress = {mds_model["stress"]} com {n_comps} componentes')
+                    del mds_model
+                    # except:
+                    #     X_transformed = 0
+                    #     print(f'nao deu pra {n_comps} dimensoes')
+                    #     continue
                 print(f'X transormed para {n_comps} dimensoes calculado')
 
                 for n_clus in [200]:
