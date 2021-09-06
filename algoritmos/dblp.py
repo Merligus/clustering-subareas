@@ -394,7 +394,6 @@ for journal in initial:
 #print(f'Representantes de cada comunidade = {lideres}')
 print(50*'*')
 
-V = len(G.vs.indegree())
 index_to_journalname = {}
 index_to_ground_truth = {}
 chosen = []
@@ -439,7 +438,7 @@ if do_mds:
             embedders = [MDS(ndim=n_comps, weight_option=w_o, verbose=False)]
             for embedding in embedders:
                 # Embedding
-                filename = f"../data/distance_embedded/X_transformed_{n_comps}dim_{w_o}weight_{function}function_{nan_sub}nan.npy"
+                filename = f"../data/distance_embedded/X_transformed_{n_comps}dim_{w_o}weight_{function}function_{nan_sub}nan_{mode}{in_name}.npy"
                 print(f'Calculando X transormed para {n_comps} dimensoes')
                 if os.path.exists(filename):
                     with open(filename, "rb") as f:
@@ -462,48 +461,39 @@ if do_mds:
                     # Clustering
                     # GMM
                     print(f'MDS GMM weights={w_o} n_clusters={n_clus} n_components = {n_comps}')
-                    try:
-                        gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
-                        gmm_c.fit(X_transformed)
-                        print(f'{"converged" if gmm_c.converged_ else "did not converge"} with {gmm_c.n_iter_} iterations')
-                        VC = show_communities_length(gmm_c.predict(X_transformed))
+                    gmm_c = GaussianMixture(n_components=n_clus, random_state=RANDOM_STATE)
+                    gmm_c.fit(X_transformed)
+                    print(f'{"converged" if gmm_c.converged_ else "did not converge"} with {gmm_c.n_iter_} iterations')
+                    VC = show_communities_length(gmm_c.predict(X_transformed))
 
-                        file_out = open(f'../data/gmm_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.txt', "w")
-                        info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                        file_out.close()
-                    except:
-                        _ = 1
+                    file_out = open(f'../data/gmm_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.txt', "w")
+                    info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    file_out.close()
                         
                     # K-means
                     print(f'MDS KMeans weights={w_o} n_clusters={n_clus} n_components = {n_comps}')
-                    try:
-                        k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
-                        k_means.fit(X_transformed)
-                        VC = show_communities_length(k_means.labels_)
+                    k_means = KMeans(n_clusters=n_clus, algorithm='elkan', random_state=RANDOM_STATE)
+                    k_means.fit(X_transformed)
+                    VC = show_communities_length(k_means.labels_)
 
-                        file_out = open(f'../data/kmeans_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.txt', "w")
-                        info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                        file_out.close()
-                    except:
-                        _ = 1
+                    file_out = open(f'../data/kmeans_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.txt', "w")
+                    info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    file_out.close()
 
                     # plt.scatter(np.clip(X_transformed[:, 0], -3, 0.5), np.clip(X_transformed[:, 1], -1, 8), c=k_means.labels_, s=0.4)
                     # plt.savefig(f'../data/kmeans_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.pdf')
 
                     # VBGMM
                     print(f'MDS VBGMM weights={w_o} n_clusters={n_clus} n_components = {n_comps}')
-                    try:
-                        vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
-                        vbgmm_c.fit(X_transformed)
-                        print(f'{"converged" if vbgmm_c.converged_ else "did not converge"} with {vbgmm_c.n_iter_} iterations')
-                        vbgmm_labels = vbgmm_c.predict(X_transformed)
-                        VC = show_communities_length(vbgmm_labels)
+                    vbgmm_c = BayesianGaussianMixture(n_components=n_clus, weight_concentration_prior=0.01, max_iter=1700, random_state=RANDOM_STATE)
+                    vbgmm_c.fit(X_transformed)
+                    print(f'{"converged" if vbgmm_c.converged_ else "did not converge"} with {vbgmm_c.n_iter_} iterations')
+                    vbgmm_labels = vbgmm_c.predict(X_transformed)
+                    VC = show_communities_length(vbgmm_labels)
 
-                        file_out = open(f'../data/vbgmm_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.txt', "w")
-                        info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
-                        file_out.close()
-                    except:
-                        _ = 1
+                    file_out = open(f'../data/vbgmm_{function}_{mode}_d{n_comps}_c{n_clus}_weights{w_o}.txt', "w")
+                    info(file_out, VC, index_to_journalname, lideres, lista_iniciais, G, X_transformed, metric='euclidean', only_ground_truth=False, only_labeled=True)
+                    file_out.close()
                 del X_transformed
 
 elif opcao_grafo != 2:
