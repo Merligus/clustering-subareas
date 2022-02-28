@@ -6,8 +6,8 @@ A consulta pode ser feita no site [merligus.pythonanywhere.com](https://merligus
 
 1. Clonar repositório
    ```sh
-   git clone https://github.com/Merligus/clustering_subareas.git
-   cd clustering_subareas/
+   git clone https://github.com/Merligus/clustering-subareas.git
+   cd clustering-subareas/
    ```
 2. Criar o ambiente
    ```sh
