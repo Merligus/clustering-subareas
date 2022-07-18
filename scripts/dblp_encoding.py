@@ -1,15 +1,16 @@
 import html
 import codecs
 
-arq_i = 'G:\\Mestrado\\BD\\data\\dblp2.xml'
-arq_o = 'G:\\Mestrado\\BD\\data\\dblp_new2.xml'
+arq_i = '../data/dblp.xml'
+arq_o = '../data/dblp2.xml'
 
+# to count the number of lines open the dblp before
 dblp = codecs.open(arq_i, encoding="iso-8859-1")
-dblp2 = open(arq_o, "w", encoding="utf-8")
 count = 0
 for line in dblp:
     count += 1
 dblp.close()
+dblp2 = open(arq_o, "w", encoding="utf-8")
 
 dblp = codecs.open(arq_i, encoding="iso-8859-1")
 for i, line in enumerate(dblp):
@@ -24,9 +25,9 @@ for i, line in enumerate(dblp):
     res = res.replace("&apos;", "")
     res = res.replace("&#39;", "")
     dblp2.write(html.unescape(res))
-
-    if i > count//10:
-        break
+    
+    if i % 1000 == 0:
+        print(f"Line {i} of {count}")
 
 dblp.close()
 dblp2.close()

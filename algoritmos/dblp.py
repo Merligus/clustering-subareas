@@ -1,3 +1,4 @@
+from copy import deepcopy
 import matplotlib
 import matplotlib.pyplot as plt
 from igraph import *
@@ -30,7 +31,7 @@ from smacof import MDS
 # only_ground_truth=True, only_labeled=True para descobrir o valor maximo que silhouette chega com a matriz "distance"
 # only_ground_truth=False, only_labeled=True para comparar com o valor maximo do silhouette quando only_ground_truth=True
 # only_labeled=False. Executa o silhouette na matriz inteira
-def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_ground_truth=True, only_labeled=True, metric='precomputed'):
+def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_ground_truth=True, only_labeled=True, metric='precomputed', return_dict=False):
     def ind_value(e):
         s = 0
         list_of_ind = e[0][:-1].split('.')
@@ -40,9 +41,18 @@ def info(f, VC, d_ind_pra_nome, representantes, iniciais, G, distance, only_grou
         for i, xi in enumerate(list_of_ind):
             s += float(xi)*1e4**(i)
         return s
+
     VC.sort(key=ind_value)
+    if return_dict:
+        labels = {}
+        for comm_ind, tuple in enumerate(VC):
+            ind, comm = tuple[0], tuple[1]
+            for v in comm:
+                labels[G.vs[v]["journalname"]] = comm_ind
+        return labels
+    
     labels_true = []
-    labels_pred = []
+    labels_pred = []    
     labels = [0]*G.vs.indegree().__len__()
     initials = []
     initial_labels_pred = []
@@ -110,66 +120,7 @@ def show_communities_length(labels):
         VC[label][1].append(v)
     return VC
 
-print('STARTING')
-
-if(len(sys.argv) < 10):
-    print("Falta parametros")
-    exit()
-elif(len(sys.argv) > 10):
-    print("Muitos parametros")
-    exit()
-else:
-    log_transf = bool(int(sys.argv[1]))
-    mode = sys.argv[2] # mean, min, union
-    function = sys.argv[3] # multilevel, fastgreedy, agglomerative, reciprocal, . . .
-    TIMES = int(sys.argv[4])
-    n_components = int(sys.argv[5])
-    nan_sub = bool(int(sys.argv[6])) # True -> adj_mat[==0] = nan
-    only_journals = bool(int(sys.argv[7]))
-    cut = float(sys.argv[8])
-    year = int(sys.argv[9])
-    
-if only_journals and cut > 0:
-    print("Cut > 0 must have only_journals = False")
-    exit()
-in_name = ""
-if year > 0:
-    in_name += '_' + str(year)
-if only_journals:
-    in_name += '_only_journals'
-if cut > 0:
-    in_name += f'_cut{cut:.3}'
-
-RANDOM_STATE = 5
-random.seed(RANDOM_STATE)
-np.random.seed(RANDOM_STATE)
-
-# 0: nao direcionado
-# 1: bidirecionado
-# 2: bipartido
-opcao_grafo = 0
-
-do_spanning_tree = False
-do_mds = n_components > 1
-cut_p = True
-
-# Gerador no arquivo teste?
-test = False
-
-test_name = '_' + mode
-if test:
-    test_name += "_test"
-if log_transf:
-    test_name += '_' + 'log'
-if n_components <= 1:
-    test_name += f'_rec{TIMES}'
-
-np.set_printoptions(threshold=np.inf)
-
-# 0: nao direcionado
-# 1: bidirecionado
-# 2: bipartido
-if opcao_grafo == 0:
+def load_graph(mode, in_name, cut_p, log_transf, do_spanning_tree):
     filename = "../data/graph_nao_direcionado" + mode + in_name + '.npy'
     with open(filename, "rb") as f:
         adj_mat = np.load(f)
@@ -237,6 +188,101 @@ if opcao_grafo == 0:
     # Colocando os verdadeiros pesos do grafo
     G.es["commonauthors"] = weights
     print('WEIGHTS PROCESSED')
+    return G, adj_mat
+
+def set_initial(G, V, initial):
+    index_to_journalname = {}
+    journalname_to_index = {}
+    index_to_ground_truth = {}
+    chosen = []
+    for vid in range(V):
+        index_to_journalname[vid] = G.vs[vid]["journalname"]
+        journalname_to_index[G.vs[vid]["journalname"]] = vid
+        if G.vs[vid]["journalname"] in initial:
+            G.vs[vid]["initial"] = initial[G.vs[vid]["journalname"]]
+            G.vs[vid]["fixed"] = True
+            index_to_ground_truth[vid] = initial[G.vs[vid]["journalname"]]
+            chosen.append(vid)
+            # print(f'{G.vs[vid]["journalname"]} com initial={G.vs[vid]["initial"]} fixed={G.vs[vid]["fixed"]} tem min={min_pesos[vid]} e max={max_pesos[vid]}')
+
+            # adjacency_list = index[adj_mat[vid, :] > 0]
+            # print(f'vid:{vid}')
+            # for v2 in adjacency_list:
+            #     print(f'\tvid:{v2} w:{adj_mat[vid, v2]}')
+            # print(50*'-')
+        else:
+            G.vs[vid]["initial"] = -1
+            G.vs[vid]["fixed"] = False
+    print(50*'*')
+    return index_to_journalname, journalname_to_index, index_to_ground_truth, chosen
+
+print('STARTING')
+
+if(len(sys.argv) < 10):
+    print("Falta parametros")
+    exit()
+elif(len(sys.argv) > 10):
+    print("Muitos parametros")
+    exit()
+else:
+    log_transf = bool(int(sys.argv[1]))
+    mode = sys.argv[2] # mean, min, union
+    function = sys.argv[3] # multilevel, fastgreedy, agglomerative, reciprocal, . . .
+    TIMES = int(sys.argv[4])
+    n_components = int(sys.argv[5])
+    nan_sub = bool(int(sys.argv[6])) # True -> adj_mat[==0] = nan
+    only_journals = bool(int(sys.argv[7]))
+    cut = float(sys.argv[8])
+    year = int(sys.argv[9])
+    
+if only_journals and cut > 0:
+    print("Cut > 0 must have only_journals = False")
+    exit()
+in_name = ""
+if year > 0:
+    in_name += '_' + str(year)
+if only_journals:
+    in_name += '_only_journals'
+if cut > 0:
+    in_name += f'_cut{cut:.3}'
+
+RANDOM_STATE = 5
+random.seed(RANDOM_STATE)
+np.random.seed(RANDOM_STATE)
+
+# 0: nao direcionado
+# 1: bidirecionado
+# 2: bipartido
+opcao_grafo = 0
+
+do_spanning_tree = False
+do_mds = n_components > 1
+cut_p = True
+
+general_journals_impact = False
+show_results = False # wrt general_journals_impact
+compare_scimago_multilevel = False
+compare_only_journals = True
+
+# Gerador no arquivo teste?
+test = False
+
+test_name = '_' + mode
+if test:
+    test_name += "_test"
+if log_transf:
+    test_name += '_' + 'log'
+if n_components <= 1:
+    test_name += f'_rec{TIMES}'
+
+np.set_printoptions(threshold=np.inf)
+
+# 0: nao direcionado
+# 1: bidirecionado
+# 2: bipartido
+if opcao_grafo == 0:
+    G, adj_mat = load_graph(mode, in_name, cut_p, log_transf, do_spanning_tree)
+    V = adj_mat.shape[0]
     
 elif opcao_grafo == 1: 
     G = load("../data/graph_direcionado" + test_name + "2.gml")
@@ -368,7 +414,7 @@ initial = {'ai_j': 0,
 		   'soda_c': 16}
 
 fast_journalname = {}
-for journal in journalname:
+for journal in G.vs["journalname"]:
     fast_journalname[journal] = True
 
 remove_list = []
@@ -394,27 +440,8 @@ for journal in initial:
 #print(f'Representantes de cada comunidade = {lideres}')
 print(50*'*')
 
-index_to_journalname = {}
-index_to_ground_truth = {}
-chosen = []
-for vid in range(V):
-    index_to_journalname[vid] = G.vs[vid]["journalname"]
-    if G.vs[vid]["journalname"] in initial:
-        G.vs[vid]["initial"] = initial[G.vs[vid]["journalname"]]
-        G.vs[vid]["fixed"] = True
-        index_to_ground_truth[vid] = initial[G.vs[vid]["journalname"]]
-        chosen.append(vid)
-        # print(f'{G.vs[vid]["journalname"]} com initial={G.vs[vid]["initial"]} fixed={G.vs[vid]["fixed"]} tem min={min_pesos[vid]} e max={max_pesos[vid]}')
+index_to_journalname, journalname_to_index, index_to_ground_truth, chosen = set_initial(G, V, initial)
 
-        # adjacency_list = index[adj_mat[vid, :] > 0]
-        # print(f'vid:{vid}')
-        # for v2 in adjacency_list:
-        #     print(f'\tvid:{v2} w:{adj_mat[vid, v2]}')
-        # print(50*'-')
-    else:
-        G.vs[vid]["initial"] = -1
-        G.vs[vid]["fixed"] = False
-print(50*'*')        
 with open('../data/index_to_journalname_' + mode + in_name + '.pickle', 'wb') as handle:
     pickle.dump(index_to_journalname, handle, protocol=2)
 
@@ -498,18 +525,146 @@ if do_mds:
 
 elif opcao_grafo != 2:
     if function != 'agglomerative':
-        model = ClusterRec(function=function, threshold=0, times=TIMES).fit(G)
+        cluster_rec = ClusterRec(function=function, threshold=0, times=TIMES)
+        if general_journals_impact:
+            G_general = pickle.loads(pickle.dumps(G))
+        random.seed(RANDOM_STATE)
+        np.random.seed(RANDOM_STATE)
+        model = cluster_rec.fit(G)
         
         # para o finder.py
         with open('../data/children_multilevel_' + mode + in_name + '.pickle', 'wb') as f:
             pickle.dump(model.children_, f, protocol=2)
         
-        file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
         distance =  np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
         np.fill_diagonal(distance, 0)
-        labels = info(file_out, model.VC, index_to_journalname, lideres, lista_iniciais, G, distance)
+        if compare_only_journals:            
+            if show_results:
+                file_out = open(f"../data/oj_vs_conf_{function}{test_name}{in_name}_conf.txt", "w")
+            else:
+                file_out = None
+            d_normal = info(file_out, model.VC, index_to_journalname, lideres, lista_iniciais, G, distance, return_dict=not show_results)
+            if show_results:
+                file_out.close()
+            
+            in_name_only_journals = ""
+            if year > 0:
+                in_name_only_journals += '_' + str(year)
+            in_name_only_journals += '_only_journals'
+            G_only_journals, adj_mat_only_journals = load_graph(mode, in_name_only_journals, cut_p, log_transf, do_spanning_tree)
+            V_only_journals = adj_mat_only_journals.shape[0]
+            
+            index_to_journalname_oj, journalname_to_index_oj, index_to_ground_truth_oj, chosen_oj = set_initial(G_only_journals, V_only_journals, initial)
+            distance_oj =  np.nanmin(adj_mat_only_journals) + np.nanmax(adj_mat_only_journals) - adj_mat_only_journals
+            np.fill_diagonal(distance_oj, 0)
+            
+            random.seed(RANDOM_STATE)
+            np.random.seed(RANDOM_STATE)
+            model_only_journals = cluster_rec.fit(G_only_journals)
+            
+            if show_results:
+                file_out = open(f"../data/oj_vs_conf_{function}{test_name}{in_name}_only_journals.txt", "w")
+            else:
+                file_out = None
+            d_compare = info(file_out, model_only_journals.VC, index_to_journalname_oj, lideres, lista_iniciais, G_only_journals, distance_oj, return_dict=not show_results)
+            if show_results:
+                file_out.close()
+            
+            del model_only_journals
+            
+            if not show_results:
+                labels_normal = []
+                labels_compare = []
+                for journal_id in d_normal:
+                    if journal_id in d_compare:
+                        labels_normal.append(d_normal[journal_id])
+                        labels_compare.append(d_compare[journal_id])
+
+                print(f'Adjusted Rand index: {metrics.adjusted_rand_score(labels_normal, labels_compare):.2f}')
+                print(f'Adjusted Mutual Information: {metrics.adjusted_mutual_info_score(labels_normal, labels_compare):.2f}')
+                print(f'Homogeneity: {metrics.homogeneity_score(labels_normal, labels_compare):.2%}')
+                print(f'Completeness: {metrics.completeness_score(labels_normal, labels_compare):.2%}')
+                print(f'V-measure: {metrics.v_measure_score(labels_normal, labels_compare):.2%}')
+                print(f'Fowlkes-Mallows: {metrics.fowlkes_mallows_score(labels_normal, labels_compare):.2%}')
+        elif compare_scimago_multilevel:
+            d_normal = info(None, model.VC, index_to_journalname, lideres, lista_iniciais, G, distance, return_dict=True)
+            labels_normal = []
+            labels_compare = []
+            for comm_id, file_suffix in enumerate(['AI', 'APP', 'CG', 'CV', 'HCI', 'HW', 'IS', 'NET', 'SP', 'SW', 'TM']):
+                with open(f'../data/journal_names_scimago_{file_suffix}.txt') as fr:
+                    for line in fr:
+                        final_ind = line.find(':')
+                        journal_id = line[:final_ind]
+                        if journal_id in d_normal:
+                            labels_normal.append(d_normal[journal_id])
+                            labels_compare.append(comm_id)
+
+            print(f'Adjusted Rand index: {metrics.adjusted_rand_score(labels_normal, labels_compare):.2f}')
+            print(f'Adjusted Mutual Information: {metrics.adjusted_mutual_info_score(labels_normal, labels_compare):.2f}')
+            print(f'Homogeneity: {metrics.homogeneity_score(labels_normal, labels_compare):.2%}')
+            print(f'Completeness: {metrics.completeness_score(labels_normal, labels_compare):.2%}')
+            print(f'V-measure: {metrics.v_measure_score(labels_normal, labels_compare):.2%}')
+            print(f'Fowlkes-Mallows: {metrics.fowlkes_mallows_score(labels_normal, labels_compare):.2%}')
+        elif general_journals_impact:            
+            if show_results:
+                file_out = open(f"../data/impact_{function}{test_name}{in_name}_normal.txt", "w")
+            else:
+                file_out = None
+            d_normal = info(file_out, model.VC, index_to_journalname, lideres, lista_iniciais, G, distance, return_dict=not show_results)
+            if show_results:
+                file_out.close()
+            
+            # taking off general journals
+            vertices_to_delete = []
+            deleted_vertices_names = set()
+            with open('../data/journal_names_scimago_misc.txt') as fr:
+                for line in fr:
+                    final_ind = line.find(':')
+                    journal_id = line[:final_ind]
+                    if journal_id in fast_journalname:
+                        vertices_to_delete.append(journalname_to_index[journal_id])
+                        deleted_vertices_names.add(journal_id)
+            es_select = G_general.es.select(_source_in = vertices_to_delete)
+            print(50*'*')
+            print(50*'*')
+            print(f"General venues: {' '.join(deleted_vertices_names)}")
+            print(50*'*')
+            print(50*'*')
+            G_general.delete_edges(es_select)
+            
+            random.seed(RANDOM_STATE)
+            np.random.seed(RANDOM_STATE)
+            model_general = cluster_rec.fit(G_general)
+            
+            if show_results:
+                file_out = open(f"../data/impact_{function}{test_name}{in_name}_general.txt", "w")
+            else:
+                file_out = None
+            d_compare = info(file_out, model_general.VC, index_to_journalname, lideres, lista_iniciais, G_general, distance, return_dict=not show_results)
+            if show_results:
+                file_out.close()
+            
+            del model_general
+            
+            if not show_results:
+                labels_normal = []
+                labels_compare = []
+                for journal_id in d_normal:
+                    if journal_id not in deleted_vertices_names:
+                        labels_normal.append(d_normal[journal_id])
+                        labels_compare.append(d_compare[journal_id])
+                
+                print(f'Adjusted Rand index: {metrics.adjusted_rand_score(labels_normal, labels_compare):.2f}')
+                print(f'Adjusted Mutual Information: {metrics.adjusted_mutual_info_score(labels_normal, labels_compare):.2f}')
+                print(f'Homogeneity: {metrics.homogeneity_score(labels_normal, labels_compare):.2%}')
+                print(f'Completeness: {metrics.completeness_score(labels_normal, labels_compare):.2%}')
+                print(f'V-measure: {metrics.v_measure_score(labels_normal, labels_compare):.2%}')
+                print(f'Fowlkes-Mallows: {metrics.fowlkes_mallows_score(labels_normal, labels_compare):.2%}')
+        else:
+            file_out = open(f"../data/{function}{test_name}{in_name}.txt", "w")
+            info(file_out, model.VC, index_to_journalname, lideres, lista_iniciais, G, distance)
+            file_out.close()
         del model
-        file_out.close()
 
     elif function == 'agglomerative':
         # Processing the authors sets of each journal
@@ -544,7 +699,11 @@ elif opcao_grafo != 2:
         
         distance =  np.nanmin(adj_mat) + np.nanmax(adj_mat) - adj_mat
         np.fill_diagonal(distance, 0)
-        model = Agglomerative(mode=mode).fit(adj_mat=adj_mat, authors_sets=authors_sets, metrics_it=1, max_iter=TIMES, ground_truth=index_to_ground_truth, debug=True)
+        agglomerative = Agglomerative(mode=mode)
+        
+        random.seed(RANDOM_STATE)
+        np.random.seed(RANDOM_STATE)
+        model = agglomerative.fit(adj_mat=adj_mat, authors_sets=authors_sets, metrics_it=1, max_iter=TIMES, ground_truth=index_to_ground_truth, debug=True)
 
         # para o finder.py
         with open('../data/children_agglomerative_' + mode + in_name + '.pickle', 'wb') as f:

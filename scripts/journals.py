@@ -48,6 +48,15 @@ journals = {}
 quantity_articles = defaultdict(int)
 journals_publications = {}
 set_of_authors = set()
+wrong_venues = 0
+number_of_journals = 0
+number_of_conferences = 0
+authors_per_article = []
+number_of_articles = 0
+number_of_journal_articles = 0
+number_of_conference_articles = 0
+max_authors_one_article = 0
+max_articles_one_venue = 0
 if opcao_grafo == 2:
     for event, child in root:
         if event == 'start':
@@ -163,8 +172,17 @@ else:
                 journals[journal]['journal_name'] = []
             if child.tag in {"article", "inproceedings"}:
                 quantity_articles[journal] += 1
+                if (quantity_articles[journal] > max_articles_one_venue):
+                    max_articles_one_venue = quantity_articles[journal]
+                number_of_articles += 1
+                number_of_journal_articles += 1 if find_j > -1 else 0
+                number_of_conference_articles += 1 if find_c > -1 else 0
+                authors_per_article.append(len(authors))
+                if (len(authors) > max_authors_one_article):
+                    max_authors_one_article = len(authors)
                 for author in authors:
                     journals[journal][author] = True
+                    set_of_authors.add(author)
             elif child.tag in {"proceedings"}:
                 if journal_name[0] != '-':
                     journals[journal]['journal_name'].append(journal_name)
@@ -183,6 +201,12 @@ else:
 
     remove_list = []
     for journal in journals:
+        if (journals[journal]['conference'] and journals[journal]['journal']):
+            wrong_venues += 1
+        if (journals[journal]['conference']):
+            number_of_conferences += 1
+        if (journals[journal]['journal']):
+            number_of_journals += 1
         if quantity_articles[journal] < cut and journals[journal]['conference']:
             remove_list.append(journal)
             continue
@@ -224,8 +248,18 @@ else:
 
     for journal in remove_list:
         journals.pop(journal, None)
-        
-    print(f'publtypes = {publtype.keys()}')
+    
+    print(f'wrong_venues = {wrong_venues}') # done
+    print(f'number_of_venues = {len(journals)}') # done
+    print(f'number_of_journals = {number_of_journals}') # done
+    print(f'number_of_conferences = {number_of_conferences}') # done
+    print(f'mean_authors_per_article = {sum(authors_per_article) / len(authors_per_article)}') # done
+    print(f'number_of_articles = {number_of_articles}') # done
+    print(f'number_of_authors = {len(set_of_authors)}') # done
+    print(f'number_of_journal_articles = {number_of_journal_articles}') # done
+    print(f'number_of_conference_articles = {number_of_conference_articles}') # done
+    print(f'max_authors_one_article = {max_authors_one_article}') # done
+    print(f'max_articles_one_venue = {max_articles_one_venue}') # done
 
     with open('../data/journal_names.txt') as fr:
         for line in fr:

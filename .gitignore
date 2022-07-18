@@ -1,0 +1,5 @@
+clustering_subareas_env/
+*pycache*
+flask_session/
+data/
+*.code-workspace

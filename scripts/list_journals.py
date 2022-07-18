@@ -1,9 +1,9 @@
 import pickle
 
 comb = []
-for cut in [0, 0.2]:
-    for only_journals in [0, 1]:
-        for year in [0, 2010]:
+for cut in [0.2]:
+    for only_journals in [0]:
+        for year in [2010]:
             if only_journals and cut > 0:
                 continue
             in_name = ""
@@ -20,8 +20,8 @@ for in_name in comb:
     with open(f'../data/journals_dict{in_name}.pickle', 'rb') as handle:
         journals = pickle.load(handle)
     print('ARQUIVO ABERTO')
-    for function, rec in [('multilevel', 4), ('agglomerative', 0)]:
-        for mode in ['union', 'max', 'mean']:
+    for function, rec in [('multilevel', 4)]:
+        for mode in ['mean']:
             fin = open(f'../data/{function}_{mode}_rec{rec}{in_name}.txt')
             fout = open(f'../data/formatted_output/{function}_{mode}_rec{rec}{in_name}.txt', 'w')
             for line in fin:

@@ -27,9 +27,9 @@ bad_words = {'cambridge', 'cambridge', 'ca', 'california', 'jose', 'int', 'secon
              'september', 'november', 'december', 'journal'}
 
 comb = []
-for cut in [0, 0.2]:
-    for only_journals in [0, 1]:
-        for year in [0, 2010]:
+for cut in [0.2]:
+    for only_journals in [0]:
+        for year in [2010]:
             if only_journals and cut > 0:
                 continue
             in_name = ""
@@ -42,11 +42,11 @@ for cut in [0, 0.2]:
             comb.append(in_name)
 
 for in_name in comb:
-    for function, rec in [('multilevel', 3)]:
-        for mode in ['max', 'union', 'mean']:
-            dir = "G:\\Mestrado\\BD\\data\\formatted_output\\definitivas\\"
+    for function, rec in [('multilevel', 4)]:
+        for mode in ['mean']:
+            dir = "../data/formatted_output/definitivas/"
             file_name = f"{function}_{mode}_rec{rec}{in_name}.txt"
-            f_out = open(f'{dir}most_frequent_words\\mfw_{file_name}', 'w', encoding="utf-8")
+            f_out = open(f'{dir}most_frequent_words/mfw_{file_name}', 'w', encoding="utf-8")
 
             frequent = defaultdict(int)
             sentences = []
